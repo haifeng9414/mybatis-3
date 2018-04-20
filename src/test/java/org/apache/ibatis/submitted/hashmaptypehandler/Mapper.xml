@@ -17,17 +17,17 @@
 
 -->
 <!DOCTYPE mapper
-    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="org.apache.ibatis.submitted.hashmaptypehandler.Mapper">
 
-	<select id="getUserXml" resultType="org.apache.ibatis.submitted.hashmaptypehandler.User">
-		select * from users where id = #{id} and name = #{name}
-	</select>
+    <select id="getUserXml" resultType="org.apache.ibatis.submitted.hashmaptypehandler.User">
+        select * from users where id = #{id} and name = #{name}
+    </select>
 
-	<select id="getUserWithTypeHandlerXml" resultType="org.apache.ibatis.submitted.hashmaptypehandler.User">
-		select * from users where name = #{name}
-	</select>
+    <select id="getUserWithTypeHandlerXml" resultType="org.apache.ibatis.submitted.hashmaptypehandler.User">
+        select * from users where name = #{name}
+    </select>
 
 </mapper>

@@ -29,6 +29,7 @@ import org.junit.Test;
 import java.io.Reader;
 import java.sql.Connection;
 import java.util.List;
+import java.util.Properties;
 
 public class AutoConstructorTest {
     private static SqlSessionFactory sqlSessionFactory;
@@ -37,19 +38,22 @@ public class AutoConstructorTest {
     public static void setUp() throws Exception {
         // create a SqlSessionFactory
         final Reader reader = Resources.getResourceAsReader("org/apache/ibatis/autoconstructor/mybatis-config.xml");
-        sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
+        Properties properties = new Properties();
+        properties.setProperty("demo", "a");
+        properties.setProperty("org.apache.ibatis.parsing.PropertyParser.enable-default-value", "true");
+        sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader, properties);
         reader.close();
 
         // populate in-memory database
-        final SqlSession session = sqlSessionFactory.openSession();
-        final Connection conn = session.getConnection();
-        final Reader dbReader = Resources.getResourceAsReader("org/apache/ibatis/autoconstructor/CreateDB.sql");
-        final ScriptRunner runner = new ScriptRunner(conn);
-        runner.setLogWriter(null);
-        runner.runScript(dbReader);
-        conn.close();
-        dbReader.close();
-        session.close();
+//        final SqlSession session = sqlSessionFactory.openSession();
+//        final Connection conn = session.getConnection();
+//        final Reader dbReader = Resources.getResourceAsReader("org/apache/ibatis/autoconstructor/CreateDB.sql");
+//        final ScriptRunner runner = new ScriptRunner(conn);
+//        runner.setLogWriter(null);
+//        runner.runScript(dbReader);
+//        conn.close();
+//        dbReader.close();
+//        session.close();
     }
 
     @Test
@@ -57,7 +61,7 @@ public class AutoConstructorTest {
         final SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
             final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
-            final Object subject = mapper.getSubject(1);
+            final PrimitiveSubject subject = mapper.getSubject(1);
             Assert.assertNotNull(subject);
         } finally {
             sqlSession.close();

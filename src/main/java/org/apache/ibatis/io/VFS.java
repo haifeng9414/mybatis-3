@@ -36,12 +36,16 @@ public abstract class VFS {
     private static final Log log = LogFactory.getLog(VFS.class);
 
     /** The built-in implementations. */
+    //这个数组将会在createVFS方法中添加到List<Class<? extends VFS>>，那为什么这里不直接声明成Class<? extend VFS>[]呢，这样createVFS就不用强制转换了，因为
+    //就像PECS原则一样，? extend VFS不能用来使用{DefaultVFS.class}这种方法创建数组，{DefaultVFS.class}这种方式隐含了向数组添加元素的过程
+    //而? extend VFS是不能执行添加的
     public static final Class<?>[] IMPLEMENTATIONS = {JBoss6VFS.class, DefaultVFS.class};
 
     /** The list to which implementations are added by {@link #addImplClass(Class)}. */
     public static final List<Class<? extends VFS>> USER_IMPLEMENTATIONS = new ArrayList<Class<? extends VFS>>();
 
     /** Singleton instance holder. */
+    //延迟初始化
     private static class VFSHolder {
         static final VFS INSTANCE = createVFS();
 
@@ -101,6 +105,7 @@ public abstract class VFS {
         }
     }
 
+    //为啥这里还要一个getClass方法
     /** Get a class by name. If the class is not found then return null. */
     protected static Class<?> getClass(String className) {
         try {

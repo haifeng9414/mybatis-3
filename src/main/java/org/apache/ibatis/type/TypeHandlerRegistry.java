@@ -312,6 +312,7 @@ public final class TypeHandlerRegistry {
             }
         }
         // @since 3.1.0 - try to auto-discover the mapped type
+        //TypeHandler都是继承自TypeReference的，而TypeReference通过范型实现了获取当前类关联的Java类型
         if (!mappedTypeFound && typeHandler instanceof TypeReference) {
             try {
                 TypeReference<T> typeReference = (TypeReference<T>) typeHandler;
@@ -363,6 +364,7 @@ public final class TypeHandlerRegistry {
                 map = new HashMap<JdbcType, TypeHandler<?>>();
                 TYPE_HANDLER_MAP.put(javaType, map);
             }
+            //这里不判断jdbcType是否为null，所以没有指定关联的TypeHandler会成为处理null的jdbcType的TypeHandler
             map.put(jdbcType, handler);
         }
         ALL_TYPE_HANDLERS_MAP.put(handler.getClass(), handler);
@@ -376,6 +378,7 @@ public final class TypeHandlerRegistry {
 
     public void register(Class<?> typeHandlerClass) {
         boolean mappedTypeFound = false;
+        //判断当前TypeHandler有没有MappedTypes来指定关联的Java类型
         MappedTypes mappedTypes = typeHandlerClass.getAnnotation(MappedTypes.class);
         if (mappedTypes != null) {
             for (Class<?> javaTypeClass : mappedTypes.value()) {
@@ -384,6 +387,7 @@ public final class TypeHandlerRegistry {
             }
         }
         if (!mappedTypeFound) {
+            //如果没有则直接创建当前TypeHandler并交由register处理
             register(getInstance(null, typeHandlerClass));
         }
     }
@@ -429,9 +433,10 @@ public final class TypeHandlerRegistry {
     // scan
 
     public void register(String packageName) {
-        ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<Class<?>>();
+        ResolverUtil resolverUtil = new ResolverUtil();
+        //获取所有TypeHandler的实现类
         resolverUtil.find(new ResolverUtil.IsA(TypeHandler.class), packageName);
-        Set<Class<? extends Class<?>>> handlerSet = resolverUtil.getClasses();
+        Set<Class<?>> handlerSet = resolverUtil.getClasses();
         for (Class<?> type : handlerSet) {
             //Ignore inner classes and interfaces (including package-info.java) and abstract classes
             if (!type.isAnonymousClass() && !type.isInterface() && !Modifier.isAbstract(type.getModifiers())) {

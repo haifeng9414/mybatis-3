@@ -70,13 +70,33 @@ public class XMLMapperBuilder extends BaseBuilder {
         this.resource = resource;
     }
 
+    /*
+    一个mapper的配置如下：
+    <?xml version="1.0" encoding="UTF-8" ?>
+    <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+    <mapper namespace="com.fit2cloud.selfservice.dao.SfServerMapper" >
+      <resultMap id="BaseResultMap" type="com.fit2cloud.selfservice.model.SfServer" >
+        <id column="id" property="id" jdbcType="VARCHAR" />
+        <result column="group_id" property="groupId" jdbcType="BIGINT" />
+    </resultMap>
+    <select id="countByExample" parameterType="com.fit2cloud.selfservice.model.SfServerExample" resultType="java.lang.Integer" >
+        select count(*) from sf_server
+        <if test="_parameter != null" >
+          <include refid="Example_Where_Clause" />
+        </if>
+    </select>
+    </mapper>
+    */
     public void parse() {
+        //如果没有加载过指定的mapper文件
         if (!configuration.isResourceLoaded(resource)) {
+            //解析mapper文件，包括cache、parameterMap、resultMap、sql和insert|update|delete|select
             configurationElement(parser.evalNode("/mapper"));
             configuration.addLoadedResource(resource);
             bindMapperForNamespace();
         }
 
+        //处理完当前的Mapper后尝试处理在之前处理过程中未解析完成的部分
         parsePendingResultMaps();
         parsePendingCacheRefs();
         parsePendingStatements();
@@ -95,6 +115,7 @@ public class XMLMapperBuilder extends BaseBuilder {
             builderAssistant.setCurrentNamespace(namespace);
             cacheRefElement(context.evalNode("cache-ref"));
             cacheElement(context.evalNode("cache"));
+            //已废弃，不推荐使用，这里略过
             parameterMapElement(context.evalNodes("/mapper/parameterMap"));
             resultMapElements(context.evalNodes("/mapper/resultMap"));
             sqlElement(context.evalNodes("/mapper/sql"));
@@ -104,6 +125,9 @@ public class XMLMapperBuilder extends BaseBuilder {
         }
     }
 
+    /*
+    处理select|insert|update|delete语句
+     */
     private void buildStatementFromContext(List<XNode> list) {
         if (configuration.getDatabaseId() != null) {
             buildStatementFromContext(list, configuration.getDatabaseId());
@@ -172,6 +196,7 @@ public class XMLMapperBuilder extends BaseBuilder {
             configuration.addCacheRef(builderAssistant.getCurrentNamespace(), context.getStringAttribute("namespace"));
             CacheRefResolver cacheRefResolver = new CacheRefResolver(builderAssistant, context.getStringAttribute("namespace"));
             try {
+                //尝试将当前的cacheRef绑定到builderAssistant上，如果失败了说明指定的cacheRef还没有被处理到，所以先添加到configuration的incompleteCacheRef中
                 cacheRefResolver.resolveCacheRef();
             } catch (IncompleteElementException e) {
                 configuration.addIncompleteCacheRef(cacheRefResolver);
@@ -181,13 +206,19 @@ public class XMLMapperBuilder extends BaseBuilder {
 
     private void cacheElement(XNode context) throws Exception {
         if (context != null) {
+            //默认缓存实现是PerpetualCache类，该类的别名在Configuration中注册了
             String type = context.getStringAttribute("type", "PERPETUAL");
             Class<? extends Cache> typeClass = typeAliasRegistry.resolveAlias(type);
+            //默认缓存算法是最近最少使用算法，移除最长时间不使用的数据
             String eviction = context.getStringAttribute("eviction", "LRU");
             Class<? extends Cache> evictionClass = typeAliasRegistry.resolveAlias(eviction);
+            //刷新间隔，如果不设置则在调用语句时刷新
             Long flushInterval = context.getLongAttribute("flushInterval");
+            //缓存的大小，默认1024
             Integer size = context.getIntAttribute("size");
+            //只读的缓存会给所有调用者返回缓存对象相同的实例，可读写的会返回一个序列化的实例，这样会慢一些但是更安全，所以默认是false
             boolean readWrite = !context.getBooleanAttribute("readOnly", false);
+            //若缓存中找不到对应的key，是否会一直blocking，直到有对应的数据进入缓存
             boolean blocking = context.getBooleanAttribute("blocking", false);
             Properties props = context.getChildrenAsProperties();
             builderAssistant.useNewCache(typeClass, evictionClass, flushInterval, size, readWrite, blocking, props);
@@ -235,6 +266,14 @@ public class XMLMapperBuilder extends BaseBuilder {
         return resultMapElement(resultMapNode, Collections.<ResultMapping>emptyList());
     }
 
+    /*
+    配置resultMap，如
+    <resultMap id="userResultMap" type="User">
+      <id property="id" column="user_id" />
+      <result property="username" column="user_name"/>
+      <result property="password" column="hashed_password"/>
+    </resultMap>
+     */
     private ResultMap resultMapElement(XNode resultMapNode, List<ResultMapping> additionalResultMappings) throws Exception {
         ErrorContext.instance().activity("processing " + resultMapNode.getValueBasedIdentifier());
         String id = resultMapNode.getStringAttribute("id",
@@ -250,7 +289,9 @@ public class XMLMapperBuilder extends BaseBuilder {
         List<ResultMapping> resultMappings = new ArrayList<ResultMapping>();
         resultMappings.addAll(additionalResultMappings);
         List<XNode> resultChildren = resultMapNode.getChildren();
+        //遍历resultMap中的子节点，每一个子节点都是一个ResultMapping对象
         for (XNode resultChild : resultChildren) {
+            //处理构造函数属性
             if ("constructor".equals(resultChild.getName())) {
                 processConstructorElement(resultChild, typeClass, resultMappings);
             } else if ("discriminator".equals(resultChild.getName())) {
@@ -272,6 +313,14 @@ public class XMLMapperBuilder extends BaseBuilder {
         }
     }
 
+    /*
+    处理构造函数，如
+    <constructor>
+       <idArg column="id" javaType="int" name="id" />
+       <arg column="age" javaType="_int" name="age" />
+       <arg column="username" javaType="String" name="username" />
+    </constructor>
+     */
     private void processConstructorElement(XNode resultChild, Class<?> resultType, List<ResultMapping> resultMappings) throws Exception {
         List<XNode> argChildren = resultChild.getChildren();
         for (XNode argChild : argChildren) {
@@ -309,12 +358,26 @@ public class XMLMapperBuilder extends BaseBuilder {
         sqlElement(list, null);
     }
 
+    /*
+    配置可重用SQL片段，支持参数化，如
+    <sql id="userColumns"> ${alias}.id,${alias}.username,${alias}.password </sql>
+
+    <select id="selectUsers" resultType="map">
+      select
+        <include refid="userColumns"><property name="alias" value="t1"/></include>,
+        <include refid="userColumns"><property name="alias" value="t2"/></include>
+      from some_table t1
+        cross join some_table t2
+    </select>
+     */
     private void sqlElement(List<XNode> list, String requiredDatabaseId) throws Exception {
         for (XNode context : list) {
             String databaseId = context.getStringAttribute("databaseId");
             String id = context.getStringAttribute("id");
             id = builderAssistant.applyCurrentNamespace(id, false);
             if (databaseIdMatchesCurrent(id, databaseId, requiredDatabaseId)) {
+                //这里的sqlFragments实际上就是configuration的sqlFragments，因为在XMLConfigBuilder中创建XMLMapperBuilder时sqlFragments
+                //就是通过configuration.getSqlFragments()方法传入的
                 sqlFragments.put(id, context);
             }
         }
@@ -340,6 +403,7 @@ public class XMLMapperBuilder extends BaseBuilder {
         return true;
     }
 
+    //解析传入的XNode对应的ResultMap配置并返回包含配置的ResultMapping对象
     private ResultMapping buildResultMappingFromContext(XNode context, Class<?> resultType, List<ResultFlag> flags) throws Exception {
         String property;
         if (flags.contains(ResultFlag.CONSTRUCTOR)) {

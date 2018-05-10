@@ -134,6 +134,7 @@ public class DefaultSqlSession implements SqlSession {
 
     @Override
     public <E> List<E> selectList(String statement, Object parameter) {
+        //RowBounds表示SQL语句的offset和limit，用于限制返回的数据数量
         return this.selectList(statement, parameter, RowBounds.DEFAULT);
     }
 
@@ -141,6 +142,7 @@ public class DefaultSqlSession implements SqlSession {
     public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
         try {
             MappedStatement ms = configuration.getMappedStatement(statement);
+            //executor默认实现是CachingExecutor并代理了SimpleExecutor
             return executor.query(ms, wrapCollection(parameter), rowBounds, Executor.NO_RESULT_HANDLER);
         } catch (Exception e) {
             throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);

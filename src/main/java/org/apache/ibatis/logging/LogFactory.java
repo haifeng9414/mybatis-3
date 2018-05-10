@@ -31,6 +31,7 @@ public final class LogFactory {
     private static Constructor<? extends Log> logConstructor;
 
     static {
+        //用Runnable只是为了调用方法而已，mybatis在java8之前用这种形式表示动作
         tryImplementation(new Runnable() {
             @Override
             public void run() {

@@ -21,15 +21,19 @@ import java.util.Properties;
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
+/*
+用于设置配置文件中的
+ */
 public class PropertyParser {
 
     private static final String KEY_PREFIX = "org.apache.ibatis.parsing.PropertyParser.";
     /**
      * The special property key that indicate whether enable a default value on placeholder.
      * <p>
-     *   The default value is {@code false} (indicate disable a default value on placeholder)
-     *   If you specify the {@code true}, you can specify key and default value on placeholder (e.g. {@code ${db.username:postgres}}).
+     * The default value is {@code false} (indicate disable a default value on placeholder)
+     * If you specify the {@code true}, you can specify key and default value on placeholder (e.g. {@code ${db.username:postgres}}).
      * </p>
+     *
      * @since 3.4.2
      */
     public static final String KEY_ENABLE_DEFAULT_VALUE = KEY_PREFIX + "enable-default-value";
@@ -37,8 +41,9 @@ public class PropertyParser {
     /**
      * The special property key that specify a separator for key and default value on placeholder.
      * <p>
-     *   The default separator is {@code ":"}.
+     * The default separator is {@code ":"}.
      * </p>
+     *
      * @since 3.4.2
      */
     public static final String KEY_DEFAULT_VALUE_SEPARATOR = KEY_PREFIX + "default-value-separator";
@@ -56,6 +61,13 @@ public class PropertyParser {
         return parser.parse(string);
     }
 
+    /*
+    从variables中获取content对应的数据，如果开启了enableDefaultValue则content可能不只是key，还包含默认值，处理默认值的过程也由该类处理
+    但是mybatis配置文件中的<properties></properties>里是不支持默认值的，因为在解析这个元素时还处于手机variables阶段，除非在创建XMLConfigBuilder
+    的时候手动创建Properties并设置了org.apache.ibatis.parsing.PropertyParser.enable-default-value属性为true，即
+    properties.setProperty("org.apache.ibatis.parsing.PropertyParser.enable-default-value", "true");
+    sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader, properties);
+    */
     private static class VariableTokenHandler implements TokenHandler {
         private final Properties variables;
         private final boolean enableDefaultValue;

@@ -21,6 +21,11 @@ import java.util.Arrays;
 /**
  * @author Iwao AVE!
  */
+/*
+用于获取field、方法的返回值和参数的类型信息，如T返回Object，T[]返回[Object.class、T extends Number的T返回Number、T[]返回[Number.class
+Map<String, String>返回包装类ParameterizedTypeImpl，包含了rawType即Map和范型类String.class, String.class、List<String>[]返回包装类
+GenericArrayTypeImpl，包含了保存List<String>类型信息的ParameterizedTypeImpl
+ */
 public class TypeParameterResolver {
 
     /**
@@ -39,6 +44,7 @@ public class TypeParameterResolver {
      */
     public static Type resolveReturnType(Method method, Type srcType) {
         Type returnType = method.getGenericReturnType();
+        //获取声明方法的类，如果是继承下来的方法返回最原始的类
         Class<?> declaringClass = method.getDeclaringClass();
         return resolveType(returnType, srcType, declaringClass);
     }
@@ -57,12 +63,16 @@ public class TypeParameterResolver {
         return result;
     }
 
+    //参数如resolveReturnType传入的分别是方法的返回值，srcType为方法Reflector构造函数传入的类，声明方法所在的类
     private static Type resolveType(Type type, Type srcType, Class<?> declaringClass) {
+        //TypeVariable表示<T>、<C extends Collection>中的T或C
         if (type instanceof TypeVariable) {
             return resolveTypeVar((TypeVariable<?>) type, srcType, declaringClass);
-        } else if (type instanceof ParameterizedType) {
+            //ParameterizedType表示具体的范型类型，Map<String, String>
+        } else if(type instanceof ParameterizedType) {
             return resolveParameterizedType((ParameterizedType) type, srcType, declaringClass);
-        } else if (type instanceof GenericArrayType) {
+            //GenericArrayType表示范型数组类型，即是数组类型的范型，如List<String>[]、T[]，List<String>不是，因为不是数组
+        } else if(type instanceof GenericArrayType) {
             return resolveGenericArrayType((GenericArrayType) type, srcType, declaringClass);
         } else {
             return type;
@@ -133,12 +143,14 @@ public class TypeParameterResolver {
             clazz = (Class<?>) srcType;
         } else if (srcType instanceof ParameterizedType) {
             ParameterizedType parameterizedType = (ParameterizedType) srcType;
+            //获取Map<String, String>中的Map
             clazz = (Class<?>) parameterizedType.getRawType();
         } else {
             throw new IllegalArgumentException("The 2nd arg must be Class or ParameterizedType, but was: " + srcType.getClass());
         }
 
         if (clazz == declaringClass) {
+            //getBounds获取范型变量的上边界，即T extends Number中的Number，如果没有则为Object.class
             Type[] bounds = typeVar.getBounds();
             if (bounds.length > 0) {
                 return bounds[0];
@@ -146,16 +158,18 @@ public class TypeParameterResolver {
             return Object.class;
         }
 
+        //getGenericSuperclass获取父类的范型如class Student extends Person<Integer, Boolean>返回Person<java.lang.Integer, java.lang.Boolean>
+        //这里(ParameterizedType) superClass强制转换后调用getActualTypeArguments能获取到上面的Integer，如getActualTypeArguments()[0]返回class java.lang.Integer
         Type superclass = clazz.getGenericSuperclass();
         result = scanSuperTypes(typeVar, srcType, declaringClass, clazz, superclass);
-        if (result != null) {
+        if(null != result) {
             return result;
         }
 
         Type[] superInterfaces = clazz.getGenericInterfaces();
-        for (Type superInterface : superInterfaces) {
+        for(Type superInterface : superInterfaces) {
             result = scanSuperTypes(typeVar, srcType, declaringClass, clazz, superInterface);
-            if (result != null) {
+            if(result != null) {
                 return result;
             }
         }

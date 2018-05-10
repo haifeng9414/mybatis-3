@@ -31,6 +31,9 @@ import java.util.Map;
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
+/*
+Mapper的代理，执行的mapper接口方法实际都是在这个类中执行的，构造函数的参数mapperInterface表示代理的mapper接口类
+ */
 public class MapperProxy<T> implements InvocationHandler, Serializable {
 
     private static final long serialVersionUID = -6424540398559729838L;
@@ -47,9 +50,15 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         try {
+            /*
+            代理不止会代理被代理的接口上的方法，还会代理Object.class上的3个方法equals()、hashcode()、toString()，对于这些方法，代理只需要直接调用自己的对应方法即可
+            如调用mapper的toString方法实际上是调用当前代理的toString方法，因为这里的invoke的第一个参数是this，而不想正常的动态代理使用的是被代理对象的方法如Quiver上的
+            动态代理笔记那样，是因为Mybatis根本没有创建一个被代理对象，只有一个代理对象，就像这个代理类的构造函数中只传入了被代理的接口类，所以只能调用这个代理本身的Object.class
+            上对应的方法了
+             */
             if (Object.class.equals(method.getDeclaringClass())) {
                 return method.invoke(this, args);
-            } else if (isDefaultMethod(method)) {
+            } else if (isDefaultMethod(method)) { //判断是否为default方法
                 return invokeDefaultMethod(proxy, method, args);
             }
         } catch (Throwable t) {
@@ -71,6 +80,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     @UsesJava7
     private Object invokeDefaultMethod(Object proxy, Method method, Object[] args)
             throws Throwable {
+        //获取Lookup类的构造函数Lookup(Class<?> lookupClass, int allowedModes)
         final Constructor<MethodHandles.Lookup> constructor = MethodHandles.Lookup.class
                 .getDeclaredConstructor(Class.class, int.class);
         if (!constructor.isAccessible()) {
@@ -81,12 +91,15 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
                 .newInstance(declaringClass,
                         MethodHandles.Lookup.PRIVATE | MethodHandles.Lookup.PROTECTED
                                 | MethodHandles.Lookup.PACKAGE | MethodHandles.Lookup.PUBLIC)
-                .unreflectSpecial(method, declaringClass).bindTo(proxy).invokeWithArguments(args);
+                .unreflectSpecial(method, declaringClass)//将方法转换为方法句柄
+                .bindTo(proxy)//绑定方法到将要调用该方法的实例
+                .invokeWithArguments(args);//调用方法
     }
 
     /**
      * Backport of java.lang.reflect.Method#isDefault()
      */
+    //方法声明在接口中并且是public而非abstract和static的则为default方法
     private boolean isDefaultMethod(Method method) {
         return (method.getModifiers()
                 & (Modifier.ABSTRACT | Modifier.PUBLIC | Modifier.STATIC)) == Modifier.PUBLIC

@@ -70,6 +70,14 @@ public class XNode {
         return builder.toString();
     }
 
+    /*
+    解析mapper文件中的XNode，如
+    <resultMap id="resultMapId" type="org.apache.ibatis.autoconstructor.PrimitiveSubject">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+    </resultMap>
+    将解析为mapper_resultMap[resultMapId]
+     */
     public String getValueBasedIdentifier() {
         StringBuilder builder = new StringBuilder();
         XNode current = this;

@@ -23,6 +23,9 @@ import java.net.URL;
  *
  * @author Clinton Begin
  */
+/*
+ClassLoader的包装类，封装了多个ClassLoader，代理ClassLoader调用getResource、getResourceAsStream和forName方法
+ */
 public class ClassLoaderWrapper {
 
     ClassLoader defaultClassLoader;
@@ -183,6 +186,7 @@ public class ClassLoaderWrapper {
 
                 try {
 
+                    //使用cl加载类并初始化类
                     Class<?> c = Class.forName(name, true, cl);
 
                     if (null != c) {

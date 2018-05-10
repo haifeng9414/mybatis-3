@@ -82,6 +82,7 @@ public class ResultMap {
             resultMap.mappedColumns = new HashSet<String>();
             resultMap.mappedProperties = new HashSet<String>();
             resultMap.idResultMappings = new ArrayList<ResultMapping>();
+            //保存constructor中的resultMapping
             resultMap.constructorResultMappings = new ArrayList<ResultMapping>();
             resultMap.propertyResultMappings = new ArrayList<ResultMapping>();
             final List<String> constructorArgNames = new ArrayList<String>();
@@ -126,6 +127,8 @@ public class ResultMap {
                             + resultMap.getType().getName() + "' by arg names " + constructorArgNames
                             + ". There might be more info in debug log.");
                 }
+                //resultMap中的构造函数配置属性时的顺序可以和实际的构造函数参数顺序不同，这是通过这里的排序实现的，在获取了匹配的实际
+                //构造函数的参数名称列表后，根据名称顺序对resultMap中的顺序进行排序
                 Collections.sort(resultMap.constructorResultMappings, new Comparator<ResultMapping>() {
                     @Override
                     public int compare(ResultMapping o1, ResultMapping o2) {
@@ -141,6 +144,7 @@ public class ResultMap {
             resultMap.constructorResultMappings = Collections.unmodifiableList(resultMap.constructorResultMappings);
             resultMap.propertyResultMappings = Collections.unmodifiableList(resultMap.propertyResultMappings);
             resultMap.mappedColumns = Collections.unmodifiableSet(resultMap.mappedColumns);
+            //返回resultMap，把每一行的resultMap配置映射成了ResultMapping对象
             return resultMap;
         }
 
@@ -150,6 +154,7 @@ public class ResultMap {
                 Class<?>[] paramTypes = constructor.getParameterTypes();
                 if (constructorArgNames.size() == paramTypes.length) {
                     List<String> paramNames = getArgNames(constructor);
+                    //如果构造函数的参数名称和参数类型于resultMap中的匹配了则返回构造函数的参数名称列表
                     if (constructorArgNames.containsAll(paramNames)
                             && argTypesMatch(constructorArgNames, paramTypes, paramNames)) {
                         return paramNames;
@@ -191,6 +196,7 @@ public class ResultMap {
                         break;
                     }
                 }
+                //如果没有用Param注解指定参数名称则尝试使用java.lang.reflect.Parameter获取构造函数的参数名称
                 if (name == null && resultMap.configuration.isUseActualParamName() && Jdk.parameterExists) {
                     if (actualParamNames == null) {
                         actualParamNames = ParamNameUtil.getParamNames(constructor);
@@ -199,6 +205,7 @@ public class ResultMap {
                         name = actualParamNames.get(paramIndex);
                     }
                 }
+                //无法解析名称时使用arg1等替代
                 paramNames.add(name != null ? name : "arg" + paramIndex);
             }
             return paramNames;

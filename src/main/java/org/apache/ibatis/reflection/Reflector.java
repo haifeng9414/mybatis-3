@@ -31,6 +31,9 @@ import java.util.Map.Entry;
  *
  * @author Clinton Begin
  */
+/*
+保存了类的信息，功能如下面定义的成员变量名
+ */
 public class Reflector {
 
     private final Class<?> type;
@@ -78,6 +81,7 @@ public class Reflector {
         }
     }
 
+    //获取所有的getter方法并保存到getMethods变量中
     private void addGetMethods(Class<?> cls) {
         Map<String, List<Method>> conflictingGetters = new HashMap<String, List<Method>>();
         Method[] methods = getClassMethods(cls);
@@ -88,6 +92,7 @@ public class Reflector {
             String name = method.getName();
             if ((name.startsWith("get") && name.length() > 3)
                     || (name.startsWith("is") && name.length() > 2)) {
+                //获取getter方法对应的属性名，如getAbc返回的是abc
                 name = PropertyNamer.methodToProperty(name);
                 addMethodConflict(conflictingGetters, name, method);
             }
@@ -359,6 +364,9 @@ public class Reflector {
         return sb.toString();
     }
 
+    //获取安全管理器并用checkPermission判断是否能够能使用setAccessible方法，checkPermission方法会检查是否拥有该权限，如果有则简单的返回
+    //否则抛出SecurityException异常，这也是SecurityManager的工作方式，如果拥有有个权限则正常返回，否则抛出异常，如System.exit会检查是否有exit的权限，没有则抛出异常
+    //默认情况下SecurityManager是不会安装的（某些环境如applet、servlet container、Java EE container会安装，并根据policy文件判断是否拥有某种权限）
     private static boolean canAccessPrivateMethods() {
         try {
             SecurityManager securityManager = System.getSecurityManager();

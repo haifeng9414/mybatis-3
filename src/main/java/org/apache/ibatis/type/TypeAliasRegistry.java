@@ -26,6 +26,7 @@ import java.util.*;
 /**
  * @author Clinton Begin
  */
+//保存类和类别名的映射关系
 public class TypeAliasRegistry {
 
     private final Map<String, Class<?>> TYPE_ALIASES = new HashMap<String, Class<?>>();
@@ -117,9 +118,11 @@ public class TypeAliasRegistry {
     }
 
     public void registerAliases(String packageName, Class<?> superType) {
-        ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<Class<?>>();
+        ResolverUtil resolverUtil = new ResolverUtil();
+        //将packageName下的class文件解析到resolverUtil的matches中保存下来
         resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
-        Set<Class<? extends Class<?>>> typeSet = resolverUtil.getClasses();
+        Set<Class<?>> typeSet = resolverUtil.getClasses();
+        //遍历找到的class并添加别名，跳过匿名内部类、接口和成员类
         for (Class<?> type : typeSet) {
             // Ignore inner classes and interfaces (including package-info.java)
             // Skip also inner classes. See issue #6
@@ -129,6 +132,7 @@ public class TypeAliasRegistry {
         }
     }
 
+    //保存class的别名，如果有Alias注解则使用对应的值为别名，否则以类名为别名
     public void registerAlias(Class<?> type) {
         String alias = type.getSimpleName();
         Alias aliasAnnotation = type.getAnnotation(Alias.class);

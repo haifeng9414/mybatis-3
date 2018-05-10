@@ -49,6 +49,9 @@ public class ParamNameResolver {
 
     private boolean hasParamAnnotation;
 
+    /*
+    解析参数名称和@Param注解
+     */
     public ParamNameResolver(Configuration config, Method method) {
         final Class<?>[] paramTypes = method.getParameterTypes();
         final Annotation[][] paramAnnotations = method.getParameterAnnotations();

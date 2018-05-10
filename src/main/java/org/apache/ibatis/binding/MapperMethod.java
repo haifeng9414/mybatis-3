@@ -42,13 +42,16 @@ import java.util.Optional;
  * @author Lasse Voss
  * @author Kazuki Shimizu
  */
+//执行mapper方法的类
 public class MapperMethod {
 
     private final SqlCommand command;
     private final MethodSignature method;
 
     public MapperMethod(Class<?> mapperInterface, Method method, Configuration config) {
+        //SqlCommand类保存了方法id和方法的类型，如select
         this.command = new SqlCommand(config, mapperInterface, method);
+        //MethodSignature类保存了方法的特征如返回值类型，参数名称
         this.method = new MethodSignature(config, mapperInterface, method);
     }
 
@@ -81,6 +84,7 @@ public class MapperMethod {
                 } else if (method.returnsCursor()) {
                     result = executeForCursor(sqlSession, args);
                 } else {
+                    //获取参数名对应的参数值，如果存在多个参数则保存到了map中
                     Object param = method.convertArgsToSqlCommandParam(args);
                     result = sqlSession.selectOne(command.getName(), param);
                     if (method.returnsOptional() &&

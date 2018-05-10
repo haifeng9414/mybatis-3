@@ -90,6 +90,7 @@ public class CacheBuilder {
         setCacheProperties(cache);
         // issue #352, do not apply decorators to custom caches
         if (PerpetualCache.class.equals(cache.getClass())) {
+            //为缓存添加装饰器，默认存在装饰器LruCache，而默认的size=1024也是在LruCache的构造函数中设置的
             for (Class<? extends Cache> decorator : decorators) {
                 cache = newCacheDecoratorInstance(decorator, cache);
                 setCacheProperties(cache);
@@ -134,6 +135,7 @@ public class CacheBuilder {
         }
     }
 
+    //调用setter方法设置缓存对象的属性
     private void setCacheProperties(Cache cache) {
         if (properties != null) {
             MetaObject metaCache = SystemMetaObject.forObject(cache);

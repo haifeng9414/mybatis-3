@@ -30,6 +30,8 @@ public class GenericTokenParser {
         this.handler = handler;
     }
 
+    // 解析字符串中的变量如${a}并利用传入构造函数的handler获取变量值，查看可以发现属性支持设置默认值的功能是在
+    // TokenHandler的实现VariableTokenHandler类中实现的，如"${username:ut_user}"的默认值是ut_user
     public String parse(String text) {
         if (text == null || text.isEmpty()) {
             return "";

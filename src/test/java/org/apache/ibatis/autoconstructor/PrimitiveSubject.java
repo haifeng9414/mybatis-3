@@ -15,7 +15,9 @@
  */
 package org.apache.ibatis.autoconstructor;
 
-public class PrimitiveSubject {
+import java.io.Serializable;
+
+public class PrimitiveSubject implements Serializable {
     private final int id;
     private final String name;
     private final int age;
@@ -28,5 +30,25 @@ public class PrimitiveSubject {
         this.age = age;
         this.height = height;
         this.weight = weight;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public int getWeight() {
+        return weight;
     }
 }

@@ -56,7 +56,17 @@ import java.util.Set;
  *
  * @author Tim Fennell
  */
-public class ResolverUtil<T> {
+/*
+T表示查找T或者T的子类，加上T的原因是限制matches的声明，这里matches的声明如下
+private Set<Class<? extends T>> matches = new HashSet<Class<? extends T>>();
+表示matches中存放的是Class，这些Class都是T或者T的子类的Class，但是mybatis使用该类的时候都是
+声明为ResolverUtil<Class<?>>，个人认为这种声明方式是不对的，因为这样会使得matches声明为
+Set<Class<? extends Class<?>>> matches，而这样中该Set中获取元素并调用newInstance方法默认返回的是Class<?>
+类型，但是通过Set中的Class调用newInstance返回的肯定不会是Class对象，所以写成ResolverUtil<Object>应该更科学
+但是在这个类声明成ResolverUtil<Class<?>>和ResolverUtil<Object>没啥区别，因为从matches中取出来无论什么类型的Class都可以
+使用Class<?>引用，个人认为ResolverUtil没必要加范型，matches声明为Set<Class<?>>就好了，测试发现把范型去掉也没啥问题
+ */
+public class ResolverUtil {
     /*
      * An instance of Log to use for logging in this class.
      */
@@ -123,7 +133,7 @@ public class ResolverUtil<T> {
     }
 
     /** The set of matches being accumulated. */
-    private Set<Class<? extends T>> matches = new HashSet<Class<? extends T>>();
+    private Set<Class<?>> matches = new HashSet<Class<?>>();
 
     /**
      * The ClassLoader to use when looking for classes. If null then the ClassLoader returned
@@ -137,7 +147,7 @@ public class ResolverUtil<T> {
      *
      * @return the set of classes that have been discovered.
      */
-    public Set<Class<? extends T>> getClasses() {
+    public Set<Class<?>> getClasses() {
         return matches;
     }
 
@@ -170,7 +180,7 @@ public class ResolverUtil<T> {
      * @param parent the class of interface to find subclasses or implementations of
      * @param packageNames one or more package names to scan (including subpackages) for classes
      */
-    public ResolverUtil<T> findImplementations(Class<?> parent, String... packageNames) {
+    public ResolverUtil findImplementations(Class<?> parent, String... packageNames) {
         if (packageNames == null) {
             return this;
         }
@@ -190,7 +200,7 @@ public class ResolverUtil<T> {
      * @param annotation the annotation that should be present on matching classes
      * @param packageNames one or more package names to scan (including subpackages) for classes
      */
-    public ResolverUtil<T> findAnnotated(Class<? extends Annotation> annotation, String... packageNames) {
+    public ResolverUtil findAnnotated(Class<? extends Annotation> annotation, String... packageNames) {
         if (packageNames == null) {
             return this;
         }
@@ -213,12 +223,14 @@ public class ResolverUtil<T> {
      * @param packageName the name of the package from which to start scanning for
      *        classes, e.g. {@code net.sourceforge.stripes}
      */
-    public ResolverUtil<T> find(Test test, String packageName) {
+    public ResolverUtil find(Test test, String packageName) {
         String path = getPackagePath(packageName);
 
         try {
+            //列出所有packageName中的文件，如/Users/dhf/IdeaProjects/mybatis-3/target/test-classes/org/apache/ibatis/autoconstructor/AutoConstructorMapper.class
             List<String> children = VFS.getInstance().list(path);
             for (String child : children) {
+                //如果是class文件并且满足test，则添加到matches中
                 if (child.endsWith(".class")) {
                     addIfMatching(test, child);
                 }
@@ -258,7 +270,7 @@ public class ResolverUtil<T> {
 
             Class<?> type = loader.loadClass(externalName);
             if (test.matches(type)) {
-                matches.add((Class<T>) type);
+                matches.add(type);
             }
         } catch (Throwable t) {
             log.warn("Could not examine class '" + fqn + "'" + " due to a " +

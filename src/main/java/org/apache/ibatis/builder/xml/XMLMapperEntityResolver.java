@@ -49,6 +49,17 @@ public class XMLMapperEntityResolver implements EntityResolver {
      *
      * @throws org.xml.sax.SAXException If anything goes wrong
      */
+    /*
+    publicId和systemId分别对应mybatis的xml配置
+    <!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+        中的
+        -//mybatis.org//DTD Config 3.0//EN
+        http://mybatis.org/dtd/mybatis-3-config.dtd
+        这里根据指定的publicId和systemId获取对应的dtd文件并返回InputSource
+     */
     @Override
     public InputSource resolveEntity(String publicId, String systemId) throws SAXException {
         try {

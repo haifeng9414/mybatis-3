@@ -29,6 +29,7 @@ import java.util.Collection;
 /**
  * @author Clinton Begin
  */
+//MetaClass能够利用Reflector类获取类中的所有非静态和final的或有setter方法的属性，并利用Reflector类获取类中的信息
 public class MetaClass {
 
     private final ReflectorFactory reflectorFactory;

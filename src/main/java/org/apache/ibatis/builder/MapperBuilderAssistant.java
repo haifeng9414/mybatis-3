@@ -164,6 +164,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
         extend = applyCurrentNamespace(extend, true);
 
         if (extend != null) {
+            //如果包含extend但是该extend没有解析到则抛出IncompleteElementException异常等最后再解析
             if (!configuration.hasResultMap(extend)) {
                 throw new IncompleteElementException("Could not find a parent resultmap with id '" + extend + "'");
             }
@@ -172,6 +173,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
             extendedResultMappings.removeAll(resultMappings);
             // Remove parent constructor if this resultMap declares a constructor.
             boolean declaresConstructor = false;
+            //如果当前的resultMap包含constructor则删除extend中的constructor
             for (ResultMapping resultMapping : resultMappings) {
                 if (resultMapping.getFlags().contains(ResultFlag.CONSTRUCTOR)) {
                     declaresConstructor = true;
@@ -186,6 +188,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
                     }
                 }
             }
+            //将extend中的所有resultMapping添加到当前的resultMapping列表中
             resultMappings.addAll(extendedResultMappings);
         }
         ResultMap resultMap = new ResultMap.Builder(configuration, id, type, resultMappings, autoMapping)

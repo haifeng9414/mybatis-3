@@ -215,6 +215,7 @@ public class DefaultVFS extends VFS {
 
         // If the file part of the URL is itself a URL, then that URL probably points to the JAR
         try {
+            //和while(true)是一个意思，看个人爱好，用for(;;)的形式可能在未来修改循环条件的时候更方便
             for (; ; ) {
                 url = new URL(url.getFile());
                 if (log.isDebugEnabled()) {

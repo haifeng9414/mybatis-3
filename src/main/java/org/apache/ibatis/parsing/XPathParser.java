@@ -37,6 +37,9 @@ import java.util.Properties;
 /**
  * @author Clinton Begin
  */
+/*
+封装了XPath的各种查询Document元素的方法
+ */
 public class XPathParser {
 
     private final Document document;
@@ -255,6 +258,42 @@ public class XPathParser {
         }
     }
 
+    /*
+    xpath是用于查询XML文件的表达式api，类似SQL语言和数据库的关系，如下XML内容：
+    <inventory>
+        <book year="2000">
+            <title>Snow Crash</title>
+            <author>Neal Stephenson</author>
+            <publisher>Spectra</publisher>
+            <isbn>0553380958</isbn>
+            <price>14.95</price>
+        </book>
+
+        <book year="2005">
+            <title>Burning Tower</title>
+            <author>Larry Niven</author>
+            <author>Jerry Pournelle</author>
+            <publisher>Pocket</publisher>
+            <isbn>0743416910</isbn>
+            <price>5.99</price>
+        <book>
+
+        <book year="1995">
+            <title>Zodiac</title>
+            <author>Neal Stephenson<author>
+            <publisher>Spectra</publisher>
+            <isbn>0553573862</isbn>
+            <price>7.50</price>
+        <book>
+    </inventory>
+    可以使用xpath.compile("//book[author='Neal Stephenson']/title/text()")获取所有author是Neal Stephenson图书的title，java代码如下：
+    PathExpression expr = xpath.compile("//book[author='Neal Stephenson']/title/text()");
+    Object result = expr.evaluate(doc, XPathConstants.NODESET);
+    NodeList nodes = (NodeList) result;
+    for (int i = 0; i < nodes.getLength(); i++) {
+        System.out.println(nodes.item(i).getNodeValue());
+    }
+     */
     private void commonConstructor(boolean validation, Properties variables, EntityResolver entityResolver) {
         this.validation = validation;
         this.entityResolver = entityResolver;

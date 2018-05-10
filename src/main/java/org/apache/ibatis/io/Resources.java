@@ -26,6 +26,7 @@ import java.util.Properties;
  *
  * @author Clinton Begin
  */
+//包含了多种获取资源的方法，利用ClassLoaderWrapper返回URL、File、InputStream、Reader、Properties等资源
 public class Resources {
 
     private static ClassLoaderWrapper classLoaderWrapper = new ClassLoaderWrapper();

@@ -19,9 +19,10 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
+import java.util.Map;
 
 public interface AutoConstructorMapper {
-    PrimitiveSubject getSubject(final int id);
+    PrimitiveSubject getSubject(@Param("id") final int id, Map<String, String> map1, Map<String, String> map2);
 
     @Select("SELECT * FROM subject")
     List<PrimitiveSubject> getSubjects();

@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import java.io.Reader;
 import java.sql.Connection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
@@ -61,7 +62,7 @@ public class AutoConstructorTest {
         final SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
             final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
-            final PrimitiveSubject subject = mapper.getSubject(1);
+            final PrimitiveSubject subject = mapper.getSubject(1, new HashMap<>(), new HashMap<>());
             Assert.assertNotNull(subject);
         } finally {
             sqlSession.close();

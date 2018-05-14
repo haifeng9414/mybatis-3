@@ -422,7 +422,9 @@ public class MapperAnnotationBuilder {
 
     private SqlSource getSqlSourceFromAnnotations(Method method, Class<?> parameterType, LanguageDriver languageDriver) {
         try {
+            //获取当前方法上的Insert、Delete、Update或Select注解
             Class<? extends Annotation> sqlAnnotationType = getSqlAnnotationType(method);
+            //获取当前方法上的InsertProvider、DeleteProvider、UpdateProvider或SelectProvider注解
             Class<? extends Annotation> sqlProviderAnnotationType = getSqlProviderAnnotationType(method);
             if (sqlAnnotationType != null) {
                 if (sqlProviderAnnotationType != null) {
@@ -430,6 +432,7 @@ public class MapperAnnotationBuilder {
                 }
                 Annotation sqlAnnotation = method.getAnnotation(sqlAnnotationType);
                 final String[] strings = (String[]) sqlAnnotation.getClass().getMethod("value").invoke(sqlAnnotation);
+                //使用languageDriver创建SqlSource
                 return buildSqlSourceFromStrings(strings, parameterType, languageDriver);
             } else if (sqlProviderAnnotationType != null) {
                 Annotation sqlProviderAnnotation = method.getAnnotation(sqlProviderAnnotationType);

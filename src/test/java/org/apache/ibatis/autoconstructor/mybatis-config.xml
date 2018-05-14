@@ -41,8 +41,11 @@
         </environment>
     </environments>
 
+    <!--<mappers>-->
+        <!--<package name="org.apache.ibatis.autoconstructor"/>-->
+    <!--</mappers>-->
     <mappers>
-        <package name="org.apache.ibatis.autoconstructor"/>
+        <mapper class="org.apache.ibatis.autoconstructor.AutoConstructorMapper"/>
     </mappers>
 
 

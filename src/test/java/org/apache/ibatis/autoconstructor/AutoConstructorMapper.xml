@@ -31,9 +31,12 @@
         </constructor>
     </resultMap>
 
+    <sql id="testSQL">where ${col} > 0</sql>
+
     <cache/>
 
     <select id="getSubject" resultMap="resultMap">
-        SELECT * FROM subject WHERE id = #{id}
+        SELECT * FROM subject
+        <include refid="testSQL"><property name="col" value="id"/></include>
     </select>
 </mapper>

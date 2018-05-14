@@ -31,6 +31,7 @@ import java.io.Reader;
 import java.sql.Connection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 public class AutoConstructorTest {
@@ -63,7 +64,11 @@ public class AutoConstructorTest {
         final SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
             final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
-            final PrimitiveSubject subject = mapper.getSubject(1, new HashMap<>(), new HashMap<>());
+            Map<String, String> map = new HashMap<String, String>() {{
+                put("test1", "demo1");
+                put("test2", "demo2");
+            }};
+            final PrimitiveSubject subject = mapper.getSubject(1, map, new HashMap<>());
             Assert.assertNotNull(subject);
         } finally {
             sqlSession.close();

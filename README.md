@@ -1,10 +1,17 @@
-## 个人总结:
+# 个人总结:
 
-### 简述执行一个查询语句的过程:
+- [简述执行查询语句的过程](#简述执行查询语句的过程)
+- [解析configuration过程](#解析configuration过程)
+- [SQL语句的解析过程，如何支持变量和动态SQL](#sql语句的解析过程如何支持变量和动态sql)
+- [如何实现一级缓存和二级缓存](#如何实现一级缓存和二级缓存)
+- [如何实现拦截器](#如何实现拦截器)
+- [如何实现事务的commit/rollback](#如何实现事务的commitrollback)
+
+## 简述执行查询语句的过程
 
 1. 首先入口是[SqlSessionFactoryBuilder][]，该类接受一个Reader来接收MyBatis的配置文件，如[mybatis-config.xml][]，该文件的配置就不介绍了，
 接收到配置文件后[SqlSessionFactoryBuilder][]使用[XMLConfigBuilder][]解析该配置文件并返回一个[Configuration][]对象，该对象保存了[mybatis-config.xml][]中的所有配置和[mybatis-config.xml][]文件中设置的Mapper文件的解析结果，
-[Configuration][]的构造函数设置了所有MyBatis中的默认别名、默认的TypeHandler及其他默认设置，该对象也将贯穿整个执行过程，解析Mapper的过程就是设置[Configuration的过程](#configuration_section)。
+[Configuration][]的构造函数设置了所有MyBatis中的默认别名、默认的TypeHandler及其他默认设置，该对象也将贯穿整个执行过程，解析Mapper的过程就是设置[Configuration的过程](#解析configuration过程)。
 
 2. [XMLConfigBuilder][]解析完成后[SqlSessionFactoryBuilder][]创建一个[SqlSessionFactory][]接口的实现类[DefaultSqlSessionFactory][]，将解析到的[Configuration][]传入该对象并返回，
 [SqlSessionFactory][]的功能是以不同的形式创建一个[SqlSession][]，下面是一个SqlSession的使用[demo][junit_demo]。
@@ -36,7 +43,7 @@
     1. [MapperProxy][]:执行对Object类上的方法和default方法的调用，其他的方法调用都是Mapper接口方法的调用，[MapperProxy][]创建[MapperMethod][]对象并将其他方法的调用交由该对象执行。
     1. [MapperMethod][]:将传入到当前调用的Mapper接口上的方法的参数转换成Map(当存在Param注解指定了参数名或者参数数量大于1时使用注解指定的名称或arg0、param0、arg1、param1...作为参数名并以参数名为key、值为value)或直接返回参数值(不存在Param注解并且只有一个参数时)，
     根据执行的方法对应的数据库操作(insert|delete|update|select)调用[SqlSession][]对象的对应方法，并在返回结果之前对结果进行处理如将结果添加到List中并返回。
-    1. [SqlSession][]:获取保存在[Configuration][]中的当前的Mapper方法对应的[MappedStatement][] ([SQL语句的解析过程](#MappedStatement_section))，处理传入的参数，这里对参数的处理不同于[MapperMethod][]中的参数处理，
+    1. [SqlSession][]:获取保存在[Configuration][]中的当前的Mapper方法对应的[MappedStatement][] ([SQL语句的解析过程](#sql语句的解析过程如何支持变量和动态sql))，处理传入的参数，这里对参数的处理不同于[MapperMethod][]中的参数处理，
     [MapperMethod][]处理的主要目的是确定参数的名称，[MappedStatement][]中的处理是如果方法只有一个参数并且是集合或者数组时，根据类型为参数设置上collection、list或array等别名(个人认为这一步在[MapperMethod][]做也可以，
     [MapperMethod][]中使用的是[ParamNameResolver][]解析的参数名，从类名上看得出这是专门用于解析参数名的类，这和[MappedStatement][]中解析参数的功能类似，
     如果再创建一个类包含了[MappedStatement][]中解析参数功能，并且[ParamNameResolver][]作为其成员变量使其也拥有了确定参数名的功能，则这样的一个类放到[MapperMethod][]中取代现有的[ParamNameResolver][]的调用我觉得也是可以的，
@@ -66,7 +73,7 @@
 [MappedStatement]: src/main/java/org/apache/ibatis/mapping/MappedStatement.java 
 [ParamNameResolver]: src/main/java/org/apache/ibatis/reflection/ParamNameResolver.java
 
-### <a name="configuration_section"></a>解析Configuration过程:
+## 解析configuration过程
 
 1. 下面是解析Configuration的顺序:
 ```java
@@ -121,7 +128,7 @@ mapperElement(root.evalNode("mappers"));
 [SelectKeyGenerator]: src/main/java/org/apache/ibatis/executor/keygen/SelectKeyGenerator.java
 [KeyGenerator]: src/main/java/org/apache/ibatis/executor/keygen/KeyGenerator.java
 
-### <a name="MappedStatement_section"></a>SQL语句的解析过程，如何支持变量和动态SQL:
+## SQL语句的解析过程，如何支持变量和动态SQL
 
 1. SQL语句可以以注解的形式配置在接口方法上或以XML的形式配置某个接口的SQL，两种方法区别不大，以XML的形式配置更加灵活且支持的功能更多，下面分析从XML解析SQL语句的过程:
 略过`cache`和`resultMap`等解析过程，解析SQL语句时首先获取所有的SQL语句的[XNode][]对象(XPath表达式:select|insert|update|delete)，之后获取保存在[Configuration][]中的`databaseId`(如果有的话，`databaseId`用于实现编写多数据库SQL)以便过滤不需要解析的其他数据库的SQL语句，
@@ -190,7 +197,7 @@ mapperElement(root.evalNode("mappers"));
 [StaticSqlSource]: src/main/java/org/apache/ibatis/builder/StaticSqlSource.java
 [Ognl]: https://zh.wikipedia.org/zh-hans/%E5%AF%B9%E8%B1%A1%E5%AF%BC%E8%88%AA%E5%9B%BE%E8%AF%AD%E8%A8%80
     
-### 如何实现一级缓存和二级缓存
+## 如何实现一级缓存和二级缓存
 
 1. 一级缓存:在一次数据库会话中，执行多次查询条件完全相同的SQL，MyBatis提供了一级缓存的方案优化这部分场景，如果是相同的SQL语句，会优先命中一级缓存，避免直接对数据库进行查询，提高性能。也就是说一级缓存是在一个[SqlSession][]内的缓存(默认情况下一级缓存在一个[SqlSession][]内共享，可以设置缓存级别为`STATEMENT`)。
 一级缓存是[Executor][]实现的，[BaseExecutor][]类实现了该接口的大部分功能包括一级缓存功能，[BaseExecutor][]使用[PerpetualCache][]类作为缓存的支持，
@@ -372,7 +379,7 @@ private void flushPendingEntries() {
 [TransactionalCache]: src/main/java/org/apache/ibatis/cache/decorators/TransactionalCache.java
 [BlockingCache]: src/main/java/org/apache/ibatis/cache/decorators/BlockingCache.java
 
-### 如何实现拦截器
+## 如何实现拦截器
 
 `MyBatis`使用[Interceptor][]接口表示拦截器，拦截器能够作用的时间点有:
 - Executor (update, query, flushStatements, commit, rollback, getTransaction, close, isClosed)
@@ -528,7 +535,7 @@ public class DBEncryptInterceptor implements Interceptor {
 [InterceptorChain]: src/main/java/org/apache/ibatis/plugin/InterceptorChain.java
 [Plugin]: src/main/java/org/apache/ibatis/plugin/Plugin.java
 
-### 如何实现事务的commit/rollback
+## 如何实现事务的commit/rollback
 
 MyBatis的事务管理分为两种形式:
 1. 使用JDBC的事务管理机制:即利用`java.sql.Connection`对象完成对事务的提交(commit)、回滚(rollback)、关闭(close)等
@@ -594,4 +601,4 @@ MyBatis的事务管理分为两种形式:
 [JdbcTransaction]: src/main/java/org/apache/ibatis/transaction/jdbc/JdbcTransaction.java
 [ManagedTransaction]: src/main/java/org/apache/ibatis/transaction/managed/ManagedTransaction.java
 
-### 待补充...
+## 待补充...

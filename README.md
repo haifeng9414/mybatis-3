@@ -1,6 +1,6 @@
 ## 个人总结:
 
-#### 简述执行一个查询语句的过程:
+### 简述执行一个查询语句的过程:
 
 1. 首先入口是[SqlSessionFactoryBuilder][]，该类接受一个Reader来接收MyBatis的配置文件，如[mybatis-config.xml][]，该文件的配置就不介绍了，
 接收到配置文件后[SqlSessionFactoryBuilder][]使用[XMLConfigBuilder][]解析该配置文件并返回一个[Configuration][]对象，该对象保存了[mybatis-config.xml][]中的所有配置和[mybatis-config.xml][]文件中设置的Mapper文件的解析结果，
@@ -30,8 +30,7 @@
 
 5. [MapperProxy][]处理了可能存在的继承自Object类的方法调用及接口的default方法的调用后，创建一个[MapperMethod][]来执行Mapper方法的调用，
 该对象根据当前数据库操作的类型调用[SqlSession][]对象的不同方法并对返回的数据进行必要的处理，如insert、delete、update影响的数据行。[SqlSession][]对象又是通过[Executor][]对象执行数据库操作，
-[Executor][]对象创建[StatementHandler][]对象来获取和执行java.sql.Statement类，如果是查询操作则在执行完后通过[ResultSetHandler][]处理返回的结果，
-将结果转换成Mapper接口的返回值类型并返回到调用mapper方法的地方。
+[Executor][]对象创建[StatementHandler][]对象来获取和执行java.sql.Statement类，如果是查询操作则在执行完后通过[ResultSetHandler][]处理返回的结果，将结果转换成Mapper接口的返回值类型并返回。
 
 6. 从[SqlSession][]获取Mapper接口的实例到最终执行数据库操作涉及到了多个对象，每个对象都有自己的功能:
     1. [MapperProxy][]:执行对Object类上的方法和default方法的调用，其他的方法调用都是Mapper接口方法的调用，[MapperProxy][]创建[MapperMethod][]对象并将其他方法的调用交由该对象执行。
@@ -42,8 +41,8 @@
     [MapperMethod][]中使用的是[ParamNameResolver][]解析的参数名，从类名上看得出这是专门用于解析参数名的类，这和[MappedStatement][]中解析参数的功能类似，
     如果再创建一个类包含了[MappedStatement][]中解析参数功能，并且[ParamNameResolver][]作为其成员变量使其也拥有了确定参数名的功能，则这样的一个类放到[MapperMethod][]中取代现有的[ParamNameResolver][]的调用我觉得也是可以的，
     或者直接修改现有的[ParamNameResolver][]确定参数名称的过程也可以，不确定MyBatis现在这种做法的好处是什么，当然现在这么做也没问题)，之后调用[Executor][]类执行数据库操作。
-    1. [Executor][]:实现了缓存、事务的commit/rollback操作和数据库操作，执行数据库操作时创建[StatementHandler][]，使用该对象获取数据库连接和创建java.sql.Statement对象并交由[StatementHandler][]执行数据库操作
-    1. [StatementHandler][]:最终执行数据库操作的类，在调用java.sql.Statement类的execute方法并获取到结果后对结果进行处理并返回
+    1. [Executor][]:实现了缓存、事务的`commit/rollback`操作和数据库操作，执行数据库操作时创建[StatementHandler][]，使用该对象获取数据库连接和创建`java.sql.Statement`对象并交由[StatementHandler][]执行数据库操作
+    1. [StatementHandler][]:最终执行数据库操作的类，调用`java.sql.Statement`类的`execute`方法并获取到结果后对结果进行处理并返回
 
 [SqlSessionFactoryBuilder]: src/main/java/org/apache/ibatis/session/SqlSessionFactoryBuilder.java
 [mybatis-config.xml]: src/test/java/org/apache/ibatis/autoconstructor/mybatis-config.xml
@@ -67,7 +66,7 @@
 [MappedStatement]: src/main/java/org/apache/ibatis/mapping/MappedStatement.java 
 [ParamNameResolver]: src/main/java/org/apache/ibatis/reflection/ParamNameResolver.java
 
-#### <a name="configuration_section"></a>解析Configuration过程:
+### <a name="configuration_section"></a>解析Configuration过程:
 
 1. 下面是解析Configuration的顺序:
 ```java
@@ -108,8 +107,8 @@ mapperElement(root.evalNode("mappers"));
     })
     ```
     
-2. XML解析:直接使用[XMLMapperBuilder][]解析，解析过程和使用[MapperAnnotationBuilder][]解析过程类似，只不过配置都写在了XML中，XML中的namespace就是该XML所配置的Mapper接口的全路径，
-在XML解析完成会以namespace作为class名添加到[Configuration][]中。
+2. XML解析:直接使用[XMLMapperBuilder][]解析，解析过程和使用[MapperAnnotationBuilder][]解析过程类似，只不过配置都写在了XML中，XML中的`namespace`就是该XML所配置的Mapper接口的全路径，
+在XML解析完成会以`namespace`作为类名添加到[Configuration][]中。
 
 [PropertyParser]: src/main/java/org/apache/ibatis/parsing/PropertyParser.java
 [Configuration]: src/main/java/org/apache/ibatis/session/Configuration.java
@@ -122,10 +121,10 @@ mapperElement(root.evalNode("mappers"));
 [SelectKeyGenerator]: src/main/java/org/apache/ibatis/executor/keygen/SelectKeyGenerator.java
 [KeyGenerator]: src/main/java/org/apache/ibatis/executor/keygen/KeyGenerator.java
 
-#### <a name="MappedStatement_section"></a>SQL语句的解析过程，如何支持变量和动态SQL:
+### <a name="MappedStatement_section"></a>SQL语句的解析过程，如何支持变量和动态SQL:
 
 1. SQL语句可以以注解的形式配置在接口方法上或以XML的形式配置某个接口的SQL，两种方法区别不大，以XML的形式配置更加灵活且支持的功能更多，下面分析从XML解析SQL语句的过程:
-略过`cache`和`resultMap`等解析过程，解析SQL语句时首先获取所有的SQL语句的XNode对象(XPath表达式:select|insert|update|delete)，之后获取保存在[Configuration][]中的`databaseId`(如果有的话，`databaseId`用于实现编写多数据库SQL)以便过滤不需要解析的其他数据库的SQL语句，
+略过`cache`和`resultMap`等解析过程，解析SQL语句时首先获取所有的SQL语句的[XNode][]对象(XPath表达式:select|insert|update|delete)，之后获取保存在[Configuration][]中的`databaseId`(如果有的话，`databaseId`用于实现编写多数据库SQL)以便过滤不需要解析的其他数据库的SQL语句，
 之后开始遍历获取到的所有`XNode`，为每个`XNode`创建一个[XMLStatementBuilder][]对象并解析对应的`XNode`对象。解析时获取了所有可能的设置，如果未设置则以`null`或默认值表示，值得注意的是`statementType`属性，
 该属性用于指定最后将被创建出来的`java.sql.Statement`对象的类型，可选的有`STATEMENT, PREPARED, CALLABLE`，分别对应JDBC中的常规语句(General statement，没有任何参数的SLQ语句)、
 预置语句(Prepared statement，编译优化一次即可多次运行，每次可以传递不同的参数，数据库的批量执行也是利用该对象，提交多个参数最后一次执行)、可调用语句(Callable statement，可以执行数据库中的存储过程)，在解析SQL前首先解析当前SQL引入的SQL代码片段和`SelectKey`(如果有的话)，SQL代码片段如:
@@ -191,7 +190,7 @@ mapperElement(root.evalNode("mappers"));
 [StaticSqlSource]: src/main/java/org/apache/ibatis/builder/StaticSqlSource.java
 [Ognl]: https://zh.wikipedia.org/zh-hans/%E5%AF%B9%E8%B1%A1%E5%AF%BC%E8%88%AA%E5%9B%BE%E8%AF%AD%E8%A8%80
     
-#### 如何实现一级缓存和二级缓存
+### 如何实现一级缓存和二级缓存
 
 1. 一级缓存:在一次数据库会话中，执行多次查询条件完全相同的SQL，MyBatis提供了一级缓存的方案优化这部分场景，如果是相同的SQL语句，会优先命中一级缓存，避免直接对数据库进行查询，提高性能。也就是说一级缓存是在一个[SqlSession][]内的缓存(默认情况下一级缓存在一个[SqlSession][]内共享，可以设置缓存级别为`STATEMENT`)。
 一级缓存是[Executor][]实现的，[BaseExecutor][]类实现了该接口的大部分功能包括一级缓存功能，[BaseExecutor][]使用[PerpetualCache][]类作为缓存的支持，
@@ -232,15 +231,15 @@ public Executor newExecutor(Transaction transaction, ExecutorType executorType) 
     return executor;
 }
 ```
-如果开启了二级缓存则cacheEnabled为true，返回的[Executor][]就是[CachingExecutor][]对象，代理了已有的executor的执行。[CachingExecutor][]会在执行查询操作前获取当前[MappedStatement][]对象的`Cache`，如果为空则直接调用被代理的[Executor][]对象的查询方法，
-这样就和一级缓存是一样的了。[MappedStatement][]对象的`Cache`是在分析Mapper接口的XML文件时添加的，如果需要开启某个Mapper的二级缓存，需要在XML中添加`<cache/>`，这样就是为[MappedStatement][]对象添加一个默认的`Cache`，可以配置该`Cache`的属性:
+如果开启了二级缓存则`cacheEnabled`为`true`，返回的[Executor][]就是[CachingExecutor][]对象，代理了已有的executor的执行。[CachingExecutor][]会在执行查询操作前获取当前[MappedStatement][]对象的[Cache][]，如果为空则直接调用被代理的[Executor][]对象的查询方法，
+这样就和一级缓存是一样的了。[MappedStatement][]对象的[Cache][]是在分析Mapper接口的XML文件时添加的，如果需要开启某个Mapper的二级缓存，需要在XML中添加`<cache/>`，这样就是为[MappedStatement][]对象添加一个默认的[Cache][]，可以配置该[Cache][]的属性:
 
         <cache
         eviction="FIFO"
         flushInterval="60000"
         size="512"
         readOnly="true"/>
-创建`Cache`的代码如下：
+创建[Cache][]的代码如下：
 ```java
 Cache cache = new CacheBuilder(currentNamespace)
         .implementation(valueOrDefault(typeClass, PerpetualCache.class))
@@ -255,7 +254,7 @@ configuration.addCache(cache);
 currentCache = cache;
 return cache;
 ```
-可以看到默认实现方式还是[PerpetualCache][]，并且默认添加了一个[LruCache][]，该对象将会代理[PerpetualCache][]并实现了最近最少使用算法以保证缓存的数据量不会超过某一个值(默认1024)。在[CacheBuilder][]内部还添加了若干个`Cache`，都是以装饰器模式组合的，
+可以看到默认实现方式还是[PerpetualCache][]，并且默认添加了一个[LruCache][]，该对象将会代理[PerpetualCache][]并实现了最近最少使用算法以保证缓存的数据量不会超过某一个值(默认1024)。在[CacheBuilder][]内部还添加了若干个[Cache][]，都是以装饰器模式组合的，
 最终的调用链将是`SynchronizedCache -> LoggingCache -> SerializedCache -> LruCache -> PerpetualCache`，功能如下:
 - SynchronizedCache： 同步Cache，实现比较简单，直接使用synchronized修饰方法。
 - LoggingCache： 日志功能，装饰类，用于记录缓存的命中率，如果开启了DEBUG模式，则会输出命中率日志。
@@ -278,8 +277,8 @@ keyMap = new LinkedHashMap<Object, Object>(size, .75F, true) {
     }
 };
 ```
-`removeEldestEntry`方法表示是否删除最老的数据，这里覆盖了`LinkedHashMap`的默认行为，在操作设置的尺寸后删除最老的数据，删除数据时`LruCache`的`keyMap`中的数据将会自动删除，
-但是被代理的`Cache`需要手动调用删除，代码如下，每次put时才有可能触发删除操作:
+`removeEldestEntry`方法表示是否删除最老的数据，这里覆盖了`LinkedHashMap`的默认行为，在操作设置的尺寸后删除最老的数据，删除数据时[LruCache][]的`keyMap`中的数据将会自动删除，
+但是被代理的[Cache][]需要手动调用删除，代码如下，每次`putObject`时才有可能触发删除操作:
 ```java
 public void putObject(Object key, Object value) {
     delegate.putObject(key, value);
@@ -319,7 +318,7 @@ public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds r
 [Cache][]对象是从[MappedStatement][]对象中获取的，而[MappedStatement][]对象是保存在[Configuration][]中的，所以正常情况下全局只有一个，[MapperStatement][]由`namespace`作为唯一表示，所以二级缓存是在`namespace`内的(如果缓存被其他[MapperStatement][]引用则是在这些`namespace`之间)。[CachingExecutor][]实现二级缓存的方式是，
 首先检查是否需要刷新缓存，默认情况下之后`insert、update、delete`会刷新缓存，可以在查询语句中添加`flushCache="true"`来强制调用某个查询语句时刷新缓存。
 之后将会从`tcm`中获取缓存数据，`tcm`是[TransactionalCacheManager][]对象，该对象维护了一个Map:`private final Map<Cache, TransactionalCache> transactionalCaches = new HashMap<Cache, TransactionalCache>();`，
-Map的值[TransactionalCache][]实现了Cache接口，CachingExecutor使用他包装Cache，该类的作用是如果事务提交，对缓存的操作才会生效，如果事务回滚或者不提交事务，则不对缓存产生影响。
+Map的值[TransactionalCache][]实现了Cache接口，[CachingExecutor][]使用他包装[Cache][]，该类的作用是如果事务提交，对缓存的操作才会生效，如果事务回滚或者不提交事务，则不对缓存产生影响。
 具体的实现方式是，当第一次执行查询语句时没有缓存数据，此时从被代理的[Executor][]中获取缓存数据并添加到[TransactionalCache][]中，[TransactionalCache][]添加缓存数据的代码如下:
 ```java
 public void putObject(Object key, Object object) {
@@ -373,16 +372,164 @@ private void flushPendingEntries() {
 [TransactionalCache]: src/main/java/org/apache/ibatis/cache/decorators/TransactionalCache.java
 [BlockingCache]: src/main/java/org/apache/ibatis/cache/decorators/BlockingCache.java
 
-#### 如何实现拦截器
+### 如何实现拦截器
+
+`MyBatis`使用[Interceptor][]接口表示拦截器，拦截器能够作用的时间点有:
+- Executor (update, query, flushStatements, commit, rollback, getTransaction, close, isClosed)
+- ParameterHandler (getParameterObject, setParameters)
+- ResultSetHandler (handleResultSets, handleOutputParameters)
+- StatementHandler (prepare, parameterize, batch, update, query)
+
+上述类的相应的方法可以被拦截器作用，实现的原理看下面的测试代码就可以理解了:
+```java
+
+    @Test
+    public void mapPluginShouldInterceptGet() {
+        Map map = new HashMap();
+        map = (Map) new AlwaysMapPlugin().plugin(map);
+        assertEquals("Always", map.get("Anything"));
+    }
+
+    @Test
+    public void shouldNotInterceptToString() {
+        Map map = new HashMap();
+        map = (Map) new AlwaysMapPlugin().plugin(map);
+        assertFalse("Always".equals(map.toString()));
+    }
+
+    @Intercepts({
+            @Signature(type = Map.class, method = "get", args = {Object.class})})
+    public static class AlwaysMapPlugin implements Interceptor {
+        @Override
+        public Object intercept(Invocation invocation) throws Throwable {
+            return "Always";
+        }
+
+        @Override
+        public Object plugin(Object target) {
+            return Plugin.wrap(target, this);
+        }
+
+        @Override
+        public void setProperties(Properties properties) {
+        }
+    }
+
+```
+上面的代码和`MyBatis`的拦截器还没有关系，但是`MyBatis`中拦截器的声明方式是通用的，关键之处在于`plugin`方法的实现，该方法使用`Mybatis`实现的代理类[Plugin][]，返回一个动态代理对象，`wrap`方法实现如下：
+```java
+public static Object wrap(Object target, Interceptor interceptor) {
+    Map<Class<?>, Set<Method>> signatureMap = getSignatureMap(interceptor);
+    Class<?> type = target.getClass();
+    Class<?>[] interfaces = getAllInterfaces(type, signatureMap);
+    if (interfaces.length > 0) {
+        return Proxy.newProxyInstance(
+                type.getClassLoader(),
+                interfaces,
+                new Plugin(target, interceptor, signatureMap));
+    }
+    return target;
+}
+```
+首先根据注解配置返回一个被代理类和该类被代理方法的`Map`，之后获取被拦截的对象即target的所有接口中存在于`signatureMap`的接口，并以这些接口为参数创建动态代理对象，代理对象是`new Plugin(target, interceptor, signatureMap)`
+该对象实现了`InvocationHandler`接口，`invoke`方法实现如下:
+```java
+public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    try {
+        Set<Method> methods = signatureMap.get(method.getDeclaringClass());
+        if (methods != null && methods.contains(method)) {
+            return interceptor.intercept(new Invocation(target, method, args));
+        }
+        return method.invoke(target, args);
+    } catch (Exception e) {
+        throw ExceptionUtil.unwrapThrowable(e);
+    }
+}
+```
+首先判断当前调用的方法是否是需要拦截的方法，如果是则创建一个[Invocation][]并调用拦截器的`intercept`方法，[Invocation][]维护了被代理的对象、被代理的方法和方法参数。`MyBatis`的拦截器实现原理就是简单的利用Java的动态代理，而拦截器对目标类的拦截是在创建目标类的地方做的，如创建[Executor][]时:
+```java
+public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
+    executorType = executorType == null ? defaultExecutorType : executorType;
+    executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
+    Executor executor;
+    if (ExecutorType.BATCH == executorType) {
+        executor = new BatchExecutor(this, transaction);
+    } else if (ExecutorType.REUSE == executorType) {
+        executor = new ReuseExecutor(this, transaction);
+    } else {
+        executor = new SimpleExecutor(this, transaction);
+    }
+    if (cacheEnabled) {
+        executor = new CachingExecutor(executor);
+    }
+    executor = (Executor) interceptorChain.pluginAll(executor);
+    return executor;
+}
+```
+类似`executor = (Executor) interceptorChain.pluginAll(executor)`存在于所有支持拦截的类的创建方法中，在解析`mybatis-config.xml`时已经将所有的拦截器添加到了`interceptorChain`中，`interceptorChain`是[InterceptorChain][]类，其`pluginAll`方法如下:
+```java
+public Object pluginAll(Object target) {
+    for (Interceptor interceptor : interceptors) {
+        target = interceptor.plugin(target);
+    }
+    return target;
+}
+```
+通过循环应用所有的拦截器，所以拦截器拦截的对象也有可能是一个拦截器，如果想要实现同时运行多个拦截器，则拦截器中需要调用[Invocation][]的`proceed`方法(最后一个拦截器如果想返回一个固定的值而忽略数据库操作的值可以不调用该方法)，该方法代码如下:
+```java
+public Object proceed() throws InvocationTargetException, IllegalAccessException {
+    return method.invoke(target, args);
+}
+```
+如果某个拦截器拦截的是另一个拦截器，则需要在处理完后调用[Invocation][]的`proceed`方法将调用传递到后面的拦截器，如某个实现了更新时对密码加密，查询时解密的拦截器实现:
+```java
+@Intercepts({@Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),
+        @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class,
+                RowBounds.class, ResultHandler.class})})
+public class DBEncryptInterceptor implements Interceptor {
+
+    @Override
+    public Object intercept(Invocation invocation) throws Throwable {
+        String methodName = invocation.getMethod().getName();
+        Object parameter = invocation.getArgs()[1];
+        if (parameter != null && methodName.equals("update")) { //如果是更新则将参数加密
+            invocation.getArgs()[1] = encrypt(parameter);
+        }
+        Object returnValue = invocation.proceed(); //获取操作结果并对结果解密，结果可能是update方法的结果也可能是select
+        if (parameter != null && methodName.equals("select")) { //update操作的结果没必要解密
+            if (returnValue instanceof ArrayList<?>) {
+                List<?> list = (ArrayList<?>) returnValue;
+                for (Object val : list) {
+                    decrypt(val);
+                }
+            } else {
+                decrypt(returnValue); 
+            }
+        }
+        return returnValue;
+    }
+
+    @Override
+    public Object plugin(Object target) {
+        return Plugin.wrap(target, this);
+    }
+
+    @Override
+    public void setProperties(Properties properties) {
+        // TODO Auto-generated method stub
+
+    }
+
+}
+```
+[Interceptor]: src/main/java/org/apache/ibatis/plugin/Interceptor.java
+[Executor]: src/main/java/org/apache/ibatis/executor/Executor.java
+[Invocation]: src/main/java/org/apache/ibatis/plugin/Invocation.java 
+[InterceptorChain]: src/main/java/org/apache/ibatis/plugin/InterceptorChain.java
+[Plugin]: src/main/java/org/apache/ibatis/plugin/Plugin.java
+
+### 如何实现事务的commit/rollback
 
 `todo`
 
-#### 如何控制事务的commit/rollback
-
-`todo`
-
-#### SelectKey
-
-`todo`
-
-#### 待补充...
+### 待补充...

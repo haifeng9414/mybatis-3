@@ -530,6 +530,68 @@ public class DBEncryptInterceptor implements Interceptor {
 
 ### 如何实现事务的commit/rollback
 
-`todo`
+MyBatis的事务管理分为两种形式:
+1. 使用JDBC的事务管理机制:即利用`java.sql.Connection`对象完成对事务的提交(commit)、回滚(rollback)、关闭(close)等
+2. 使用MANAGED的事务管理机制：这种机制`MyBatis`自身不会去实现事务管理，而是让程序的容器如(JBOSS，Weblogic)来实现对事务的管理
+
+`mybatis-config.xml`中的`environment`的子元素`transactionManager`配置了使用哪种形式的事务管理:
+        
+        <environments default="development">
+            <environment id="development">
+                <transactionManager type="JDBC"/>
+                <dataSource type="POOLED">
+                    <property name="driver" value="com.mysql.jdbc.Driver"/>
+                    <property name="url" value="${url}"/>
+                    <property name="username" value="${username}"/>
+                    <property name="password" value="${password}"/>
+                </dataSource>
+            </environment>
+        </environments>
+        
+在解析`mybatis-config.xml`文件，创建[Environment][]对象时会根据type创建不同的[TransactionFactory][]，分别创建不同的[Transaction][]，[Executor][]在执行数据库操作时获取的数据库连接就是从[Transaction][]对象创建而来的，下面分析两种[Transaction][]的实现:
+- JdbcTransaction:
+    ```java
+    @Override
+    public void commit() throws SQLException {
+        if (connection != null && !connection.getAutoCommit()) {
+            if (log.isDebugEnabled()) {
+                log.debug("Committing JDBC Connection [" + connection + "]");
+            }
+            connection.commit();
+        }
+    }
+    
+    @Override
+    public void rollback() throws SQLException {
+        if (connection != null && !connection.getAutoCommit()) {
+            if (log.isDebugEnabled()) {
+                log.debug("Rolling back JDBC Connection [" + connection + "]");
+            }
+            connection.rollback();
+        }
+    }
+    ```
+
+- ManagedTransaction:
+    ```java
+    @Override
+    public void commit() throws SQLException {
+        // Does nothing
+    }
+    
+    @Override
+    public void rollback() throws SQLException {
+        // Does nothing
+    }
+    ```
+[JdbcTransaction][]将`commit/rollback`交给了数据库自己处理，[ManagedTransaction][]不实现`commit/rollback`方法，将`commit/rollback`交给了容器处理，
+所以如果使用`MyBatis`构建本地程序，而不是WEB程序，若将`type`设置成`MANAGED`，那么执行的任何`update`操作，即使最后执行了`commit`操作，数据也不会保留，不会对数据库造成任何影响。因为将`MyBatis`配置成了`MANAGED`，即`MyBatis`自己不管理事务，而我们又是运行的本地程序，没有事务管理功能，所以对数据库的`update`操作都是无效的。
+
+[Environment]: src/main/java/org/apache/ibatis/mapping/Environment.java
+[TransactionFactory]: src/main/java/org/apache/ibatis/transaction/TransactionFactory.java
+[Transaction]: src/main/java/org/apache/ibatis/transaction/Transaction.java
+[Executor]: src/main/java/org/apache/ibatis/executor/Executor.java
+[JdbcTransaction]: src/main/java/org/apache/ibatis/transaction/jdbc/JdbcTransaction.java
+[ManagedTransaction]: src/main/java/org/apache/ibatis/transaction/managed/ManagedTransaction.java
 
 ### 待补充...

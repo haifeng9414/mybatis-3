@@ -2,9 +2,9 @@
 
 #### 简述执行一个查询语句的过程:
 
-1. 首先入口是[SqlSessionFactoryBuilder][]，该类接受一个Reader来接收mybatis的配置文件，如[mybatis-config.xml][]，该文件的配置就不介绍了，
+1. 首先入口是[SqlSessionFactoryBuilder][]，该类接受一个Reader来接收MyBatis的配置文件，如[mybatis-config.xml][]，该文件的配置就不介绍了，
 接收到配置文件后[SqlSessionFactoryBuilder][]使用[XMLConfigBuilder][]解析该配置文件并返回一个[Configuration][]对象，该对象保存了[mybatis-config.xml][]中的所有配置和[mybatis-config.xml][]文件中设置的Mapper文件的解析结果，
-[Configuration][]的构造函数设置了所有mybatis中的默认别名、默认的TypeHandler及其他默认设置，该对象也将贯穿整个执行过程，解析Mapper的过程就是设置[Configuration的过程](#configuration_section)。
+[Configuration][]的构造函数设置了所有MyBatis中的默认别名、默认的TypeHandler及其他默认设置，该对象也将贯穿整个执行过程，解析Mapper的过程就是设置[Configuration的过程](#configuration_section)。
 
 2. [XMLConfigBuilder][]解析完成后[SqlSessionFactoryBuilder][]创建一个[SqlSessionFactory][]接口的实现类[DefaultSqlSessionFactory][]，将解析到的[Configuration][]传入该对象并返回，
 [SqlSessionFactory][]的功能是以不同的形式创建一个[SqlSession][]，下面是一个SqlSession的使用[demo][junit_demo]。
@@ -41,7 +41,7 @@
     [MapperMethod][]处理的主要目的是确定参数的名称，[MappedStatement][]中的处理是如果方法只有一个参数并且是集合或者数组时，根据类型为参数设置上collection、list或array等别名(个人认为这一步在[MapperMethod][]做也可以，
     [MapperMethod][]中使用的是[ParamNameResolver][]解析的参数名，从类名上看得出这是专门用于解析参数名的类，这和[MappedStatement][]中解析参数的功能类似，
     如果再创建一个类包含了[MappedStatement][]中解析参数功能，并且[ParamNameResolver][]作为其成员变量使其也拥有了确定参数名的功能，则这样的一个类放到[MapperMethod][]中取代现有的[ParamNameResolver][]的调用我觉得也是可以的，
-    或者直接修改现有的[ParamNameResolver][]确定参数名称的过程也可以，不确定mybatis现在这种做法的好处是什么，当然现在这么做也没问题)，之后调用[Executor][]类执行数据库操作。
+    或者直接修改现有的[ParamNameResolver][]确定参数名称的过程也可以，不确定MyBatis现在这种做法的好处是什么，当然现在这么做也没问题)，之后调用[Executor][]类执行数据库操作。
     1. [Executor][]:实现了缓存、事务的commit/rollback操作和数据库操作，执行数据库操作时创建[StatementHandler][]，使用该对象获取数据库连接和创建java.sql.Statement对象并交由[StatementHandler][]执行数据库操作
     1. [StatementHandler][]:最终执行数据库操作的类，在调用java.sql.Statement类的execute方法并获取到结果后对结果进行处理并返回
 
@@ -86,7 +86,7 @@ typeHandlerElement(root.evalNode("typeHandlers"));
 mapperElement(root.evalNode("mappers")); 
 ```
 利用XPath解析XML配置文件，`propertiesElement`方法解析XML中的properties节点，在创建对应的XNode时使用[PropertyParser][]解析${value}和${value:defaultValue}形式的属性值。
-`loadCustomVfs`使用ClassLoader加载VFS，VFS用于加载指定路径下的jar文件或class文件。`settingsElement`设置mybatis中的各项参数如是否开启缓存，最主要的是`mapperElement`方法，
+`loadCustomVfs`使用ClassLoader加载VFS，VFS用于加载指定路径下的jar文件或class文件。`settingsElement`设置MyBatis中的各项参数如是否开启缓存，最主要的是`mapperElement`方法，
 该方法解析mapper文件或mapper接口，`mapperElement`方法分两种情况，一种解析接口，一种解析XML:
 
 1. 接口解析:调用[Configuration][]的`addMapper`或`addMappers`方法添加单个接口或包路径下接口，[Configuration][]利用[MapperRegistry][]添加Mapper接口，
@@ -193,7 +193,185 @@ mapperElement(root.evalNode("mappers"));
     
 #### 如何实现一级缓存和二级缓存
 
-`todo`
+1. 一级缓存:在一次数据库会话中，执行多次查询条件完全相同的SQL，MyBatis提供了一级缓存的方案优化这部分场景，如果是相同的SQL语句，会优先命中一级缓存，避免直接对数据库进行查询，提高性能。也就是说一级缓存是在一个[SqlSession][]内的缓存(默认情况下一级缓存在一个[SqlSession][]内共享，可以设置缓存级别为`STATEMENT`)。
+一级缓存是[Executor][]实现的，[BaseExecutor][]类实现了该接口的大部分功能包括一级缓存功能，[BaseExecutor][]使用[PerpetualCache][]类作为缓存的支持，
+[PerpetualCache][]实现了[Cache][]接口，该接口提供了和缓存相关的最基本的操作，[PerpetualCache][]实现缓存的功能很简单，将缓存维护在一个`HashMap`中。
+每个[SqlSession][]都有一个[Executor][]对象，[SqlSession][]对象对外提供数据库操作，而具体的数据库操作又是委托给了[Executor][]，[Executor][]在执行查询功能时会为当前查询请求创建一个[CacheKey][]对象，
+该对象用来作为是否是相同的查询请求的标示，[Executor][]对象构建[CacheKey][]时以`Statement Id + Offset + Limmit + Sql + Params`作为参数，如果这5项都相等的两个查询请求则会被认为是相同的请求，对于相同的请求缓存才会生效。
+创建[CacheKey][]后[Executor][]在执行查询操作时首先判断缓存中是否已存在当前请求的数据，如果已存在则以缓存中的数据作为结果返回，在返回之前还会判断一级缓存的级别是否为`STATEMENT`的，如果是则清空缓存，所以`STATEMENT`级别的一级缓存是在一个`Statement`内的。
+[Executor][]中的`update`方法用于处理`update、insert、delete`操作，代码如下
+```java
+public int update(MappedStatement ms, Object parameter) throws SQLException {
+    ErrorContext.instance().resource(ms.getResource()).activity("executing an update").object(ms.getId());
+    if (closed) {
+        throw new ExecutorException("Executor was closed.");
+    }
+    clearLocalCache();
+    return doUpdate(ms, parameter);
+}
+```
+在执行前会清空缓存，这就能保证在一个[SqlSession][]内不会出现脏数据(不能避免[SqlSession][]间的脏数据，因为一级缓存在[SqlSession][]内，[SqlSession][]间的缓存互不影响，某个[SqlSession][]更新了数据库只会情况自己的缓存而不会影响其他[SqlSession][]的缓存，可以设置一级缓存的缓存级别为`STATEMENT`避免这个问题，`STATEMENT`级别的缓存在每次查询之后都会清空缓存，这就相当于禁用了一级缓存)。
+
+2. 二级缓存:由[CachingExecutor][]实现，每个[SqlSession][]都有一个[Executor][]对象，而该对象是[DefaultSqlSessionFactory][]在创建[SqlSession][]是使用[Configuration][]对象的`newExecutor`方法创建的，代码如下
+```java
+public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
+    executorType = executorType == null ? defaultExecutorType : executorType;
+    executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
+    Executor executor;
+    if (ExecutorType.BATCH == executorType) {
+        executor = new BatchExecutor(this, transaction);
+    } else if (ExecutorType.REUSE == executorType) {
+        executor = new ReuseExecutor(this, transaction);
+    } else {
+        executor = new SimpleExecutor(this, transaction);
+    }
+    if (cacheEnabled) {
+        executor = new CachingExecutor(executor);
+    }
+    executor = (Executor) interceptorChain.pluginAll(executor);
+    return executor;
+}
+```
+如果开启了二级缓存则cacheEnabled为true，返回的[Executor][]就是[CachingExecutor][]对象，代理了已有的executor的执行。[CachingExecutor][]会在执行查询操作前获取当前[MappedStatement][]对象的`Cache`，如果为空则直接调用被代理的[Executor][]对象的查询方法，
+这样就和一级缓存是一样的了。[MappedStatement][]对象的`Cache`是在分析Mapper接口的XML文件时添加的，如果需要开启某个Mapper的二级缓存，需要在XML中添加`<cache/>`，这样就是为[MappedStatement][]对象添加一个默认的`Cache`，可以配置该`Cache`的属性:
+
+        <cache
+        eviction="FIFO"
+        flushInterval="60000"
+        size="512"
+        readOnly="true"/>
+创建`Cache`的代码如下：
+```java
+Cache cache = new CacheBuilder(currentNamespace)
+        .implementation(valueOrDefault(typeClass, PerpetualCache.class))
+        .addDecorator(valueOrDefault(evictionClass, LruCache.class))
+        .clearInterval(flushInterval)
+        .size(size)
+        .readWrite(readWrite)
+        .blocking(blocking)
+        .properties(props)
+        .build();
+configuration.addCache(cache);
+currentCache = cache;
+return cache;
+```
+可以看到默认实现方式还是[PerpetualCache][]，并且默认添加了一个[LruCache][]，该对象将会代理[PerpetualCache][]并实现了最近最少使用算法以保证缓存的数据量不会超过某一个值(默认1024)。在[CacheBuilder][]内部还添加了若干个`Cache`，都是以装饰器模式组合的，
+最终的调用链将是`SynchronizedCache -> LoggingCache -> SerializedCache -> LruCache -> PerpetualCache`，功能如下:
+- SynchronizedCache： 同步Cache，实现比较简单，直接使用synchronized修饰方法。
+- LoggingCache： 日志功能，装饰类，用于记录缓存的命中率，如果开启了DEBUG模式，则会输出命中率日志。
+- SerializedCache： 序列化功能，将值序列化后存到缓存中。该功能用于缓存返回一份实例的Copy，用于保存线程安全。
+- LruCache： 采用了Lru算法的Cache实现，移除最近最少使用的key/value。
+- PerpetualCache： 作为为最基础的缓存类，底层实现比较简单，直接使用了HashMap。
+
+Lru的实现是使用`LinkedHashMap`，`LinkedHashMap`支持按照添加的顺序存储，也可以按照访问的顺序存储，这里的实现方式就是利用了安装访问的顺序存储的特性，`LruCache`声明`LinkedHashMap`的代码如下:
+```java
+keyMap = new LinkedHashMap<Object, Object>(size, .75F, true) {
+    private static final long serialVersionUID = 4267176411845948333L;
+
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<Object, Object> eldest) {
+        boolean tooBig = size() > size;
+        if (tooBig) {
+            eldestKey = eldest.getKey();
+        }
+        return tooBig;
+    }
+};
+```
+`removeEldestEntry`方法表示是否删除最老的数据，这里覆盖了`LinkedHashMap`的默认行为，在操作设置的尺寸后删除最老的数据，删除数据时`LruCache`的`keyMap`中的数据将会自动删除，
+但是被代理的`Cache`需要手动调用删除，代码如下，每次put时才有可能触发删除操作:
+```java
+public void putObject(Object key, Object value) {
+    delegate.putObject(key, value);
+    cycleKeyList(key);
+}
+
+private void cycleKeyList(Object key) {
+    keyMap.put(key, key);
+    if (eldestKey != null) {
+        delegate.removeObject(eldestKey);
+        eldestKey = null;
+    }
+}
+```
+缓存的实现就是如上描述，下面来看[CachingExecutor][]如何使用缓存以支持二级缓存的。
+[CachingExecutor][]查询代码如下:
+```java
+public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
+        throws SQLException {
+    Cache cache = ms.getCache();
+    if (cache != null) {
+        flushCacheIfRequired(ms);
+        if (ms.isUseCache() && resultHandler == null) {
+            ensureNoOutParams(ms, boundSql);
+            @SuppressWarnings("unchecked")
+            List<E> list = (List<E>) tcm.getObject(cache, key);
+            if (list == null) {
+                list = delegate.<E>query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+                tcm.putObject(cache, key, list); // issue #578 and #116
+            }
+            return list;
+        }
+    }
+    return delegate.<E>query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+}
+```
+[Cache][]对象是从[MappedStatement][]对象中获取的，而[MappedStatement][]对象是保存在[Configuration][]中的，所以正常情况下全局只有一个，[MapperStatement][]由`namespace`作为唯一表示，所以二级缓存是在`namespace`内的(如果缓存被其他[MapperStatement][]引用则是在这些`namespace`之间)。[CachingExecutor][]实现二级缓存的方式是，
+首先检查是否需要刷新缓存，默认情况下之后`insert、update、delete`会刷新缓存，可以在查询语句中添加`flushCache="true"`来强制调用某个查询语句时刷新缓存。
+之后将会从`tcm`中获取缓存数据，`tcm`是[TransactionalCacheManager][]对象，该对象维护了一个Map:`private final Map<Cache, TransactionalCache> transactionalCaches = new HashMap<Cache, TransactionalCache>();`，
+Map的值[TransactionalCache][]实现了Cache接口，CachingExecutor使用他包装Cache，该类的作用是如果事务提交，对缓存的操作才会生效，如果事务回滚或者不提交事务，则不对缓存产生影响。
+具体的实现方式是，当第一次执行查询语句时没有缓存数据，此时从被代理的[Executor][]中获取缓存数据并添加到[TransactionalCache][]中，[TransactionalCache][]添加缓存数据的代码如下:
+```java
+public void putObject(Object key, Object object) {
+    entriesToAddOnCommit.put(key, object);
+}
+```
+将数据保存在了`Map`中，所以在未`commit`之前缓存数据是不会被保存到缓存中的，调用[SqlSession][]的`commit`方法后会调用[CachingExecutor][]的`commit`方法，该方法实现如下：
+```java
+public void commit() {
+    if (clearOnCommit) {
+        delegate.clear();
+    }
+    flushPendingEntries();
+    reset();
+}
+
+private void flushPendingEntries() {
+    for (Map.Entry<Object, Object> entry : entriesToAddOnCommit.entrySet()) {
+        delegate.putObject(entry.getKey(), entry.getValue());
+    }
+    for (Object entry : entriesMissedInCache) {
+        if (!entriesToAddOnCommit.containsKey(entry)) {
+            delegate.putObject(entry, null);
+        }
+    }
+}
+```
+此时才会将数据添加到缓存中，需要注意的是，获取[SqlSession][]时即使设置了`autocommit`为`true`也不会自动调用[SqlSession][]的`commit`方法，
+`autocommit`是数据库自身支持的，所以为了二级缓存能够工作，需要手动在查询后调用`commit`方法。
+另外上述代码的`entriesMissedInCache`作用是保存了在事务提交之前所有未查询到的[CacheKey][]，这是在缓存的`blocking`为`true`时，缓存的调用将为`BlockingCache -> SynchronizedCache -> LoggingCache -> SerializedCache -> LruCache -> PerpetualCache`时用的，
+[BlockingCache][]会阻塞在第一个查询开始之后且保存查询到的数据到缓存之前的其他所有相同的查询请求直到缓存中存在数据。这一功能的实现方式是使用`ReentrantLock`实现的，`ReentrantLock`的使用方式是获取锁和释放锁要成对出现，查看[BlockingCache][]的实现可知，`getObject`时获取锁，`putObject`时才会释放锁，正常情况下，
+`entriesMissedInCache`中的元素肯定在`entriesToAddOnCommit`中，因为查询操作在缓存未命中的情况下总是在查询之后伴随着put数据到缓存中的过程，这会使得即使未命中某个[CacheKey][]，
+使得该[CacheKey][]被添加到`entriesMissedInCache`中([TransactionCache][]的`getObject`方法)，这个[CacheKey][]对应的数据也将在之后的put操作中和它对应的从数据库中查询到的数据一块添加到`entriesToAddOnCommit`中，
+但是如果在查询时出现异常了，导致没有执行查询之后的put缓存操作，这会使得[BlockingCache][]的锁操作只有获取锁而没有释放锁，也就会导致这个异常查询的后续查询都处于阻塞状态，
+这些存在阻塞的[CacheKey][]就保存在`entriesMissedInCache`中，所以在`commit/rollback`时需要释放这些阻塞请求，这只需要调用`putObject`就可以了.
+
+[SqlSession]: .idea
+[Executor]: src/main/java/org/apache/ibatis/executor/Executor.java
+[BaseExecutor]: src/main/java/org/apache/ibatis/executor/BaseExecutor.java
+[PerpetualCache]: src/main/java/org/apache/ibatis/cache/impl/PerpetualCache.java
+[Cache]: src/main/java/org/apache/ibatis/cache/Cache.java
+[SqlSession]: src/main/java/org/apache/ibatis/session/SqlSession.java
+[CacheKey]: src/main/java/org/apache/ibatis/cache/CacheKey.java
+[CachingExecutor]: src/main/java/org/apache/ibatis/executor/CachingExecutor.java
+[DefaultSqlSessionFactory]: src/main/java/org/apache/ibatis/session/defaults/DefaultSqlSessionFactory.java 
+[Configuration]: src/main/java/org/apache/ibatis/session/Configuration.java
+[MappedStatement]: src/main/java/org/apache/ibatis/mapping/MappedStatement.java 
+[LruCache]: src/main/java/org/apache/ibatis/cache/decorators/LruCache.java
+[CacheBuilder]: src/main/java/org/apache/ibatis/mapping/CacheBuilder.java
+[TransactionalCacheManager]: src/main/java/org/apache/ibatis/cache/TransactionalCacheManager.java
+[TransactionalCache]: src/main/java/org/apache/ibatis/cache/decorators/TransactionalCache.java
+[BlockingCache]: src/main/java/org/apache/ibatis/cache/decorators/BlockingCache.java
 
 #### 如何实现拦截器
 

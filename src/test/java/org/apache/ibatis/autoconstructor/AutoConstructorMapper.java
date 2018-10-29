@@ -16,17 +16,18 @@
 package org.apache.ibatis.autoconstructor;
 
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Property;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 import java.util.Map;
 
 public interface AutoConstructorMapper {
-    PrimitiveSubject getSubject(@Param("id") final int id, Map<String, String> map1, Map<String, String> map2);
+    PrimitiveSubject getSubject(@Param("id") final int id, @Param("param") Map<String, String> map, @Param("sort") String sort);
 
     @Select("SELECT * FROM subject")
     List<PrimitiveSubject> getSubjects();
+
+    List<PrimitiveSubject> getSubjectList(@Param("ids") List<String> ids);
 
     @Select("SELECT * FROM subject")
     List<WrapperSubject> getWrapperSubjects();
@@ -36,6 +37,8 @@ public interface AutoConstructorMapper {
 
     @Select("SELECT * FROM subject")
     List<BadSubject> getBadSubjects();
+
+    void updateSubject(@Param("subject") PrimitiveSubject subject);
 
     default String funA() {
         return "funA";

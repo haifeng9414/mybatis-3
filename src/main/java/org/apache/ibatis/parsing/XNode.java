@@ -77,6 +77,22 @@ public class XNode {
         <result property="name" column="name"/>
     </resultMap>
     将解析为mapper_resultMap[resultMapId]
+    <resultMap id="resultMap" type="org.apache.ibatis.autoconstructor.PrimitiveSubject">
+        <constructor>
+            <idArg column="id" javaType="Integer"/>
+            <arg column="name" javaType="String"/>
+            <arg column="age" javaType="Integer"/>
+            <arg column="height" javaType="Integer"/>
+            <arg column="weight" javaType="Integer"/>
+        </constructor>
+        <discriminator javaType="Integer">
+            <case value="1">
+                <result column="name" property="name"/>
+            </case>
+        </discriminator>
+    </resultMap>
+    将解析为mapper_resultMap[resultMap]_discriminator_case[1]
+    开头的mapper是因为MyBatis的XML都是<mapper></mapper>的子元素
      */
     public String getValueBasedIdentifier() {
         StringBuilder builder = new StringBuilder();

@@ -61,6 +61,7 @@ public class DefaultParameterHandler implements ParameterHandler {
     @Override
     public void setParameters(PreparedStatement ps) {
         ErrorContext.instance().activity("setting parameters").object(mappedStatement.getParameterMap().getId());
+        //parameterMappings保存了参数信息
         List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
         if (parameterMappings != null) {
             for (int i = 0; i < parameterMappings.size(); i++) {
@@ -75,7 +76,17 @@ public class DefaultParameterHandler implements ParameterHandler {
                     } else if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
                         value = parameterObject;
                     } else {
+                        /*
+                        parameterObject保存着传入mapper方法的参数，如果存在多个参数则parameterObject为map，如
+                        0 = {HashMap$Node@3292} "param" -> " size = 1" (该参数本身是个map)
+                        1 = {HashMap$Node@3293} "id" -> "1"
+                        2 = {HashMap$Node@3294} "sort" -> "name"
+                        3 = {HashMap$Node@3295} "param3" -> "name"
+                        4 = {HashMap$Node@3296} "param1" -> "1"
+                        5 = {HashMap$Node@3297} "param2" -> " size = 1"
+                         */
                         MetaObject metaObject = configuration.newMetaObject(parameterObject);
+                        //利用MetaObject根据参数名获取参数值
                         value = metaObject.getValue(propertyName);
                     }
                     TypeHandler typeHandler = parameterMapping.getTypeHandler();
@@ -84,6 +95,8 @@ public class DefaultParameterHandler implements ParameterHandler {
                         jdbcType = configuration.getJdbcTypeForNull();
                     }
                     try {
+                        //设置参数，typeHandler是从参数的parameterMapping对象中获取的，typeHandler由参数的类型和JDBC类型选择出来的
+                        //在Configuration初始化了多个typeHandler和Java类与JDBC类型的映射关系，一般typeHandler是StringTrimmingTypeHandler
                         typeHandler.setParameter(ps, i + 1, value, jdbcType);
                     } catch (TypeException e) {
                         throw new TypeException("Could not set parameters for mapping: " + parameterMapping + ". Cause: " + e, e);

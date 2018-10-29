@@ -157,10 +157,10 @@ public class XMLConfigBuilder extends BaseBuilder {
 
     /*
     fs表示文件系统，用于加载路径下的文件，如
-    mappers>
+    <mappers>
        <package name="org.apache.ibatis.autoconstructor"/>
-    /mappers>
-    面的package的name的值会使用vfs(默认是DefaultVFS)来加载该包下的文件，typeAliasesElement方法会使用vfs来注册别名
+    <mappers>
+    package的name的值会使用vfs(默认是DefaultVFS)来加载该包下的文件，typeAliasesElement方法会使用vfs来注册别名
     */
     private void loadCustomVfs(Properties props) throws ClassNotFoundException {
         String value = props.getProperty("vfsImpl");
@@ -223,7 +223,7 @@ public class XMLConfigBuilder extends BaseBuilder {
         <property name="someProperty" value="100"/>
       </plugin>
     </plugins>
-    插件可用于实现拦截mybatis方法的调用，如自服务中的密码加密和解密
+    插件可用于实现拦截mybatis方法的调用，如密码加密和解密
      */
     private void pluginElement(XNode parent) throws Exception {
         if (parent != null) {
@@ -344,6 +344,19 @@ public class XMLConfigBuilder extends BaseBuilder {
 
     /*
     配置环境，未在XMLConfigBuilder构建过程中传入environment时使用default属性指定的environment
+    <environments default="development">
+      <environment id="development">
+        <transactionManager type="JDBC">
+          <property name="..." value="..."/>
+        </transactionManager>
+        <dataSource type="POOLED">
+          <property name="driver" value="${driver}"/>
+          <property name="url" value="${url}"/>
+          <property name="username" value="${username}"/>
+          <property name="password" value="${password}"/>
+        </dataSource>
+      </environment>
+    </environments>
      */
     private void environmentsElement(XNode context) throws Exception {
         if (context != null) {
@@ -498,6 +511,8 @@ public class XMLConfigBuilder extends BaseBuilder {
                     if (resource != null && url == null && mapperClass == null) {
                         ErrorContext.instance().resource(resource);
                         InputStream inputStream = Resources.getResourceAsStream(resource);
+                        //XML通过XMLMapperBuilder解析，接口和package解析调用configuration.addMapper完成，configuration使用
+                        //MapperRegistry解析接口和package，MapperRegistry使用MapperAnnotationBuilder解析接口
                         XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
                         mapperParser.parse();
                     } else if (resource == null && url != null && mapperClass == null) {

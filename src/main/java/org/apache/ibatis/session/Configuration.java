@@ -526,6 +526,7 @@ public class Configuration {
 
     public ParameterHandler newParameterHandler(MappedStatement mappedStatement, Object parameterObject, BoundSql boundSql) {
         ParameterHandler parameterHandler = mappedStatement.getLang().createParameterHandler(mappedStatement, parameterObject, boundSql);
+        //这里是第三个拦截器调用点
         parameterHandler = (ParameterHandler) interceptorChain.pluginAll(parameterHandler);
         return parameterHandler;
     }
@@ -533,12 +534,16 @@ public class Configuration {
     public ResultSetHandler newResultSetHandler(Executor executor, MappedStatement mappedStatement, RowBounds rowBounds, ParameterHandler parameterHandler,
                                                 ResultHandler resultHandler, BoundSql boundSql) {
         ResultSetHandler resultSetHandler = new DefaultResultSetHandler(executor, mappedStatement, parameterHandler, resultHandler, boundSql, rowBounds);
+        //这里是第四个拦截器调用点，MyBatis一共支持拦截4个类的调用，Executor、StatementHandler、ParameterHandler、ResultSetHandler
         resultSetHandler = (ResultSetHandler) interceptorChain.pluginAll(resultSetHandler);
         return resultSetHandler;
     }
 
     public StatementHandler newStatementHandler(Executor executor, MappedStatement mappedStatement, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
+        //RoutingStatementHandler的作用是根据StatementType创建不同类型的StatementHandler
+        //StatementHandler的作用是从connection创建Statement，调用Statement的相关方法执行数据库操作并返回结果
         StatementHandler statementHandler = new RoutingStatementHandler(executor, mappedStatement, parameterObject, rowBounds, resultHandler, boundSql);
+        //这里是第二个拦截器的调用点，第一个是在DefaultSqlSessionFactory创建DefaultSqlSession时创建Executor处
         statementHandler = (StatementHandler) interceptorChain.pluginAll(statementHandler);
         return statementHandler;
     }
@@ -558,9 +563,11 @@ public class Configuration {
         } else {
             executor = new SimpleExecutor(this, transaction);
         }
+        //默认开启缓存，缓存的具体实现见CachingExecutor的注释
         if (cacheEnabled) {
             executor = new CachingExecutor(executor);
         }
+        //调用拦截器，拦截器会拦截Executor的执行，一般的实现方式就是利用Java的动态代理创建一个代理对象返回
         executor = (Executor) interceptorChain.pluginAll(executor);
         return executor;
     }
@@ -725,6 +732,7 @@ public class Configuration {
     }
 
     public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
+        //mapper在解析前都会保存到mapperRegistry中，以mapper的class为key，MapperProxyFactory类为值
         return mapperRegistry.getMapper(type, sqlSession);
     }
 

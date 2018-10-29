@@ -64,6 +64,7 @@ public class ParamNameResolver {
                 continue;
             }
             String name = null;
+            //如果存在Param注解指定参数名称则使用该名称作为参数名
             for (Annotation annotation : paramAnnotations[paramIndex]) {
                 if (annotation instanceof Param) {
                     hasParamAnnotation = true;
@@ -71,14 +72,19 @@ public class ParamNameResolver {
                     break;
                 }
             }
+            //如果没有Param注解则尝试解析参数名
             if (name == null) {
                 // @Param was not specified.
+                //如果useActualParamName标志位为true并且能够Jdk能够获取到方法的参数名称则使用该名称，否则返回null
                 if (config.isUseActualParamName()) {
                     name = getActualParamName(method, paramIndex);
                 }
                 if (name == null) {
                     // use the parameter index as the name ("0", "1", ...)
                     // gcode issue #71
+                    //如果为null则使用参数的index作为参数名称，这里不用paramIndex而用map.size()是因为参数中可能有ResultHandler类
+                    //或者RowBounds类(上面isSpecialParameter(paramTypes[paramIndex])判断的)，而这些参数不是普通的用户输入参数
+                    //不会出现在SQL中，所以不用考虑，所以map.size()才是实际的参数index
                     name = String.valueOf(map.size());
                 }
             }
@@ -118,13 +124,17 @@ public class ParamNameResolver {
         if (args == null || paramCount == 0) {
             return null;
         } else if (!hasParamAnnotation && paramCount == 1) {
+            //如果只有一个参数则直接返回该参数
             return args[names.firstKey()];
         } else {
+            //如果有多个参数就用map保存参数名和参数的映射关系
             final Map<String, Object> param = new ParamMap<Object>();
             int i = 0;
             for (Map.Entry<Integer, String> entry : names.entrySet()) {
+                //entry保存的是参数名称, entry保存的是参数的index，这里把参数名称作为key，参数值作为value
                 param.put(entry.getValue(), args[entry.getKey()]);
                 // add generic param names (param1, param2, ...)
+                //同时创建参数名称为param[index]的映射关系
                 final String genericParamName = GENERIC_NAME_PREFIX + String.valueOf(i + 1);
                 // ensure not to overwrite parameter named with @Param
                 if (!names.containsValue(genericParamName)) {

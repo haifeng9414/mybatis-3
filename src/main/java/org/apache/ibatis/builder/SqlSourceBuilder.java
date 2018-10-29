@@ -41,6 +41,8 @@ public class SqlSourceBuilder extends BaseBuilder {
 
     public SqlSource parse(String originalSql, Class<?> parameterType, Map<String, Object> additionalParameters) {
         ParameterMappingTokenHandler handler = new ParameterMappingTokenHandler(configuration, parameterType, additionalParameters);
+        //GenericTokenParser解析originalSql并把#{}交由ParameterMappingTokenHandler处理，ParameterMappingTokenHandler简单的返回
+        //JDBC的变量占位符即?，
         GenericTokenParser parser = new GenericTokenParser("#{", "}", handler);
         String sql = parser.parse(originalSql);
         return new StaticSqlSource(configuration, sql, handler.getParameterMappings());
@@ -69,6 +71,8 @@ public class SqlSourceBuilder extends BaseBuilder {
         }
 
         private ParameterMapping buildParameterMapping(String content) {
+            //根据传入的内容创建一个map，如传入param.name将会创建一个只包含一个key为property，value为param.name的entry的map
+            //之所以需要使用map表示是因为根据content的内容需要做不同的处理，即下面的for循环
             Map<String, String> propertiesMap = parseParameterMapping(content);
             String property = propertiesMap.get("property");
             Class<?> propertyType;

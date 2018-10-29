@@ -10,12 +10,12 @@
 ## 简述执行查询语句的过程
 
 1. 首先入口是[SqlSessionFactoryBuilder][]，该类接受一个Reader来接收MyBatis的配置文件，如[mybatis-config.xml][]，该文件的配置就不介绍了，
-接收到配置文件后[SqlSessionFactoryBuilder][]使用[XMLConfigBuilder][]解析该配置文件并返回一个[Configuration][]对象，该对象保存了[mybatis-config.xml][]中的所有配置和[mybatis-config.xml][]文件中设置的Mapper文件的解析结果，
+接收到配置文件后[SqlSessionFactoryBuilder][]使用[XML ConfigBuilder][]解析该配置文件并返回一个[Configuration][]对象，该对象保存了[mybatis-config.xml][]中的所有配置和[mybatis-config.xml][]文件中设置的Mapper文件的解析结果，
 [Configuration][]的构造函数设置了所有MyBatis中的默认别名、默认的TypeHandler及其他默认设置，该对象也将贯穿整个执行过程，解析Mapper的过程就是设置[Configuration的过程](#解析configuration过程)。
 
 2. [XMLConfigBuilder][]解析完成后[SqlSessionFactoryBuilder][]创建一个[SqlSessionFactory][]接口的实现类[DefaultSqlSessionFactory][]，将解析到的[Configuration][]传入该对象并返回，
 [SqlSessionFactory][]的功能是以不同的形式创建一个[SqlSession][]，下面是一个SqlSession的使用[demo][junit_demo]。
-    ```java
+    ```
     final SqlSession sqlSession = sqlSessionFactory.openSession();
     try {
         final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
@@ -76,7 +76,7 @@
 ## 解析configuration过程
 
 1. 下面是解析Configuration的顺序:
-```java
+```
 propertiesElement(root.evalNode("properties"));
 Properties settings = settingsAsProperties(root.evalNode("settings"));
 loadCustomVfs(settings);
@@ -100,14 +100,14 @@ mapperElement(root.evalNode("mappers"));
 如果存在则使用[XMLMapperBuilder][]解析该XML，解析过程中涉及到的尚未解析到的引用将会被添加到[Configuration][]的incompleteXXX中，这些incompleteXXX是所有解析Mapper接口和XML文件共享的，
 每个解析过程都会获取一次所有的incompleteXXX并尝试再次解析，所以能保证当前尚未解析到的incompleteXXX在完成所有的Mapper接口和XML文件解析过程之前肯定能完成解析。解析时以接口类的toString结果作为当前接口资源的namespace，
 如`interface org.apache.ibatis.autoconstructor.AutoConstructorMapper`，之后获取类上的[CacheNamespace][]注解和[CacheNamespaceRef][]注解，[CacheNamespace][]配置了指定namespace的缓存属性，
-[CacheNamespaceRef][]指定了引用哪个namespace的缓存。之后解析每个接口方法的注解方法上可用的注解有`Insert、Update、Delete、Select、InsertProvider、UpdateProvider、DeleteProvider、SelectProvider、Options、SelectKey、ConstructorArgs、TypeDiscriminator、Results、MapKey、ResultMap、ResultType、Flush`
+[CacheNamespaceRef][]指定了引用哪个namespace的缓存。之后解析每个接口方法的注解，方法上可用的注解有`Insert、Update、Delete、Select、InsertProvider、UpdateProvider、DeleteProvider、SelectProvider、Options、SelectKey、ConstructorArgs、TypeDiscriminator、Results、MapKey、ResultMap、ResultType、Flush`
     1. Insert、Update、Delete、Select、InsertProvider、UpdateProvider、DeleteProvider、SelectProvider:指定当前方法的SQL语句，XXXProvider能够指定类名和返回在运行时执行的 SQL 语句的方法。
     1. Options:用于设置映射语句的属性如`useCache`，由于Java的注解不能设置值为null，所以`Options`包含了很多默认值，使用时需要注意。
     1. SelectKey:用于设置生成某个属性值的SQL语句，如`@SelectKey(statement = "call identity()", keyProperty = "nameId", before = false, resultType = int.class)`，解析`SelectKey`时以当前方法的id + "!selectKey"为`SelectKey`的id，这样就能将`SelectKey`和方法进行绑定，之后将`SelectKey`中的SQL解析成[MappedStatement][]添加到[Configuration][]中，并根据该[MappedStatement][]创建[SelectKeyGenerator][]添加到[Configuration][]，
     [SelectKeyGenerator][]实现了[KeyGenerator][]接口，用于在运行SQL时对SQL进行处理。
     1. ResultMap:为`Select`或`SelectProvider`注解设置在XML中配置的`ResultMap`的id
     1. ConstructorArgs:设置返回结果的构造函数，如
-    ```java
+    ```
     @ConstructorArgs({
         @Arg(property = "id", column = "cid", id = true),
         @Arg(property = "name", column = "name")
@@ -138,7 +138,7 @@ mapperElement(root.evalNode("mappers"));
     
         <include refid="userColumns"><property name="alias" value="t1"/></include>
 解析SQL代码片段时根据refid获取SQL代码片段(在解析SQL语句前SQL代码片段就已经备解析了)，之后将`include`中的`property`保存下来，替换SQL代码片段中指定的属性如上述配置将会替换SQL代码片段中的alias为t1，之后将解析完成的SQL代码片段替换`include`元素，SQL代码片段就解析完成了。
-之后时解析`SelectKey`，将`SelectKey`和普通的SQL语句一样作为[MappedStatement][]对象保存到[Configuration][]中，再根据这个从`SelectKey`创建出来的[MappedStatement][]对象创建[KeyGenerator][]对象保存到[Configuration][]中并以以当前方法的id + "!selectKey"为`SelectKey`的id便于之后能够找到某个方法的[KeyGenerator][]，解析完后从SQL语句中删除`SelectKey`部分。
+之后是解析`SelectKey`，将`SelectKey`和普通的SQL语句一样作为[MappedStatement][]对象保存到[Configuration][]中，再根据这个从`SelectKey`创建出来的[MappedStatement][]对象创建[KeyGenerator][]对象保存到[Configuration][]中并以以当前方法的id + "!selectKey"为`SelectKey`的id便于之后能够找到某个方法的[KeyGenerator][]，解析完后从SQL语句中删除`SelectKey`部分。
 最后由[LanguageDriver][]创建[SqlSource][]对象，将所有这些信息整合到[MappedStatement][]对象中并添加到[Configuration][]中，SQL语句也就解析完成了。
 
 2. 解析动态SQL时，如
@@ -161,10 +161,10 @@ mapperElement(root.evalNode("mappers"));
               AND title like #{title}
             </if>
     
-    2. [XMLScriptBuilder][]首先获取传入的[XNode][]对象的所有子元素并判断子元素的类型，如果是动态SQL则类型将是`Node.ELEMENT_NODE`，此时根据节点名如`where`获取对应的[NodeHandler][]，
-    不同的[NodeHandler][]将创建不同的[SqlNode][]对象，并统一添加到同一个作为根的[MixedSqlNode][]对象，在遍历完所有子元素后，该根对象创建完成，[XMLScriptBuilder][]将该对象作为参数传入[DynamicSqlSource][]对象并返回[DynamicSqlSource][]对象，[SqlSource][]就获取完成了。
+    2. [XMLScriptBuilder][]首先获取传入的[XNode][]对象的所有子元素并判断子元素的类型，如果是字符串则判断字符串是否是动态SQL(判断过程看[XMLScriptBuilder][]类的注释)，如果是则返回支持解析变量的[TextSqlNode][]类，如果是`Node.ELEMENT_NODE`的则根据节点名如`where`获取对应的[NodeHandler][]，
+    不同的[NodeHandler][]将创建不同的[SqlNode][]对象，并统一添加到同一个作为根的[MixedSqlNode][]对象，在遍历完所有子元素后，该根对象创建完成，[XMLScriptBuilder][]将该对象作为参数传入[DynamicSqlSource][]对象并返回[DynamicSqlSource][]对象，[SqlSource][]就获取完成了(具体过程可以看[XMLScriptBuilder][]类的注释)。
     
-    实现动态SQL关键在于[DynamicSqlSource][]在获取[BoundSql][]对象是的处理，[DynamicSqlSource][]对象能够接收包含了所有运行时指定的传入Mapper接口方法中的参数，并创建[DynamicContext][]对象，此时先前传入的[MixedSqlNode][]对象将接收该对象并分析动态SQL内容。
+    实现动态SQL关键在于[DynamicSqlSource][]在获取[BoundSql][]对象时的处理，[DynamicSqlSource][]对象能够接收包含了所有运行时指定的传入Mapper接口方法中的参数，并创建[DynamicContext][]对象，此时先前传入的[MixedSqlNode][]对象将接收该对象并分析动态SQL内容。
     以`where`和`foreach`这两种比较复杂的场景为例分析:
 
     - where:由[WhereSqlNode][]处理`where`的动态SQL，其继承自[TrimSqlNode][]，所有的方法也都是在[TrimSqlNode][]中实现的，而`where`内都是包含其他若干子元素如`if`，而这些子元素已经在[WhereHandler][]解析并以一个[MixedSqlNode][]对象的形式组合在一起，
@@ -195,6 +195,7 @@ mapperElement(root.evalNode("mappers"));
 [ForeachSqlNode]: src/main/java/org/apache/ibatis/scripting/xmltags/ForEachSqlNode.java
 [SqlSourceBuilder]: src/main/java/org/apache/ibatis/builder/SqlSourceBuilder.java
 [StaticSqlSource]: src/main/java/org/apache/ibatis/builder/StaticSqlSource.java
+[TextSqlNode]: src/main/java/org/apache/ibatis/scripting/xmltags/TextSqlNode.java
 [Ognl]: https://zh.wikipedia.org/zh-hans/%E5%AF%B9%E8%B1%A1%E5%AF%BC%E8%88%AA%E5%9B%BE%E8%AF%AD%E8%A8%80
     
 ## 如何实现一级缓存和二级缓存
@@ -206,7 +207,7 @@ mapperElement(root.evalNode("mappers"));
 该对象用来作为是否是相同的查询请求的标示，[Executor][]对象构建[CacheKey][]时以`Statement Id + Offset + Limmit + Sql + Params`作为参数，如果这5项都相等的两个查询请求则会被认为是相同的请求，对于相同的请求缓存才会生效。
 创建[CacheKey][]后[Executor][]在执行查询操作时首先判断缓存中是否已存在当前请求的数据，如果已存在则以缓存中的数据作为结果返回，在返回之前还会判断一级缓存的级别是否为`STATEMENT`的，如果是则清空缓存，所以`STATEMENT`级别的一级缓存是在一个`Statement`内的。
 [Executor][]中的`update`方法用于处理`update、insert、delete`操作，代码如下
-```java
+```
 public int update(MappedStatement ms, Object parameter) throws SQLException {
     ErrorContext.instance().resource(ms.getResource()).activity("executing an update").object(ms.getId());
     if (closed) {
@@ -219,7 +220,7 @@ public int update(MappedStatement ms, Object parameter) throws SQLException {
 在执行前会清空缓存，这就能保证在一个[SqlSession][]内不会出现脏数据(不能避免[SqlSession][]间的脏数据，因为一级缓存在[SqlSession][]内，[SqlSession][]间的缓存互不影响，某个[SqlSession][]更新了数据库只会情况自己的缓存而不会影响其他[SqlSession][]的缓存，可以设置一级缓存的缓存级别为`STATEMENT`避免这个问题，`STATEMENT`级别的缓存在每次查询之后都会清空缓存，这就相当于禁用了一级缓存)。
 
 2. 二级缓存:由[CachingExecutor][]实现，每个[SqlSession][]都有一个[Executor][]对象，而该对象是[DefaultSqlSessionFactory][]在创建[SqlSession][]是使用[Configuration][]对象的`newExecutor`方法创建的，代码如下
-```java
+```
 public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
     executorType = executorType == null ? defaultExecutorType : executorType;
     executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
@@ -247,7 +248,7 @@ public Executor newExecutor(Transaction transaction, ExecutorType executorType) 
         size="512"
         readOnly="true"/>
 创建[Cache][]的代码如下：
-```java
+```
 Cache cache = new CacheBuilder(currentNamespace)
         .implementation(valueOrDefault(typeClass, PerpetualCache.class))
         .addDecorator(valueOrDefault(evictionClass, LruCache.class))
@@ -270,7 +271,7 @@ return cache;
 - PerpetualCache： 作为为最基础的缓存类，底层实现比较简单，直接使用了HashMap。
 
 Lru的实现是使用`LinkedHashMap`，`LinkedHashMap`支持按照添加的顺序存储，也可以按照访问的顺序存储，这里的实现方式就是利用了安装访问的顺序存储的特性，`LruCache`声明`LinkedHashMap`的代码如下:
-```java
+```
 keyMap = new LinkedHashMap<Object, Object>(size, .75F, true) {
     private static final long serialVersionUID = 4267176411845948333L;
 
@@ -286,7 +287,7 @@ keyMap = new LinkedHashMap<Object, Object>(size, .75F, true) {
 ```
 `removeEldestEntry`方法表示是否删除最老的数据，这里覆盖了`LinkedHashMap`的默认行为，在操作设置的尺寸后删除最老的数据，删除数据时[LruCache][]的`keyMap`中的数据将会自动删除，
 但是被代理的[Cache][]需要手动调用删除，代码如下，每次`putObject`时才有可能触发删除操作:
-```java
+```
 public void putObject(Object key, Object value) {
     delegate.putObject(key, value);
     cycleKeyList(key);
@@ -302,7 +303,7 @@ private void cycleKeyList(Object key) {
 ```
 缓存的实现就是如上描述，下面来看[CachingExecutor][]如何使用缓存以支持二级缓存的。
 [CachingExecutor][]查询代码如下:
-```java
+```
 public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
         throws SQLException {
     Cache cache = ms.getCache();
@@ -322,18 +323,18 @@ public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds r
     return delegate.<E>query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
 }
 ```
-[Cache][]对象是从[MappedStatement][]对象中获取的，而[MappedStatement][]对象是保存在[Configuration][]中的，所以正常情况下全局只有一个，[MapperStatement][]由`namespace`作为唯一表示，所以二级缓存是在`namespace`内的(如果缓存被其他[MapperStatement][]引用则是在这些`namespace`之间)。[CachingExecutor][]实现二级缓存的方式是，
+[Cache][]对象是从[MappedStatement][]对象中获取的，而[MappedStatement][]对象是保存在[Configuration][]中的，所以正常情况下全局只有一个，[MappedStatement][]由`namespace`作为唯一表示，所以二级缓存是在`namespace`内的(如果缓存被其他[MapperStatement][]引用则是在这些`namespace`之间)。[CachingExecutor][]实现二级缓存的方式是，
 首先检查是否需要刷新缓存，默认情况下之后`insert、update、delete`会刷新缓存，可以在查询语句中添加`flushCache="true"`来强制调用某个查询语句时刷新缓存。
 之后将会从`tcm`中获取缓存数据，`tcm`是[TransactionalCacheManager][]对象，该对象维护了一个Map:`private final Map<Cache, TransactionalCache> transactionalCaches = new HashMap<Cache, TransactionalCache>();`，
 Map的值[TransactionalCache][]实现了Cache接口，[CachingExecutor][]使用他包装[Cache][]，该类的作用是如果事务提交，对缓存的操作才会生效，如果事务回滚或者不提交事务，则不对缓存产生影响。
 具体的实现方式是，当第一次执行查询语句时没有缓存数据，此时从被代理的[Executor][]中获取缓存数据并添加到[TransactionalCache][]中，[TransactionalCache][]添加缓存数据的代码如下:
-```java
+```
 public void putObject(Object key, Object object) {
     entriesToAddOnCommit.put(key, object);
 }
 ```
 将数据保存在了`Map`中，所以在未`commit`之前缓存数据是不会被保存到缓存中的，调用[SqlSession][]的`commit`方法后会调用[CachingExecutor][]的`commit`方法，该方法实现如下：
-```java
+```
 public void commit() {
     if (clearOnCommit) {
         delegate.clear();
@@ -358,7 +359,7 @@ private void flushPendingEntries() {
 另外上述代码的`entriesMissedInCache`作用是保存了在事务提交之前所有未查询到的[CacheKey][]，这是在缓存的`blocking`为`true`时，缓存的调用将为`BlockingCache -> SynchronizedCache -> LoggingCache -> SerializedCache -> LruCache -> PerpetualCache`时用的，
 [BlockingCache][]会阻塞在第一个查询开始之后且保存查询到的数据到缓存之前的其他所有相同的查询请求直到缓存中存在数据。这一功能的实现方式是使用`ReentrantLock`实现的，`ReentrantLock`的使用方式是获取锁和释放锁要成对出现，查看[BlockingCache][]的实现可知，`getObject`时获取锁，`putObject`时才会释放锁，正常情况下，
 `entriesMissedInCache`中的元素肯定在`entriesToAddOnCommit`中，因为查询操作在缓存未命中的情况下总是在查询之后伴随着put数据到缓存中的过程，这会使得即使未命中某个[CacheKey][]，
-使得该[CacheKey][]被添加到`entriesMissedInCache`中([TransactionCache][]的`getObject`方法)，这个[CacheKey][]对应的数据也将在之后的put操作中和它对应的从数据库中查询到的数据一块添加到`entriesToAddOnCommit`中，
+使得该[CacheKey][]被添加到`entriesMissedInCache`中([TransactionalCache][]的`getObject`方法)，这个[CacheKey][]对应的数据也将在之后的put操作中和它对应的从数据库中查询到的数据一块添加到`entriesToAddOnCommit`中，
 但是如果在查询时出现异常了，导致没有执行查询之后的put缓存操作，这会使得[BlockingCache][]的锁操作只有获取锁而没有释放锁，也就会导致这个异常查询的后续查询都处于阻塞状态，
 这些存在阻塞的[CacheKey][]就保存在`entriesMissedInCache`中，所以在`commit/rollback`时需要释放这些阻塞请求，这只需要调用`putObject`就可以了.
 
@@ -388,7 +389,7 @@ private void flushPendingEntries() {
 - StatementHandler (prepare, parameterize, batch, update, query)
 
 上述类的相应的方法可以被拦截器作用，实现的原理看下面的测试代码就可以理解了:
-```java
+```
 
     @Test
     public void mapPluginShouldInterceptGet() {
@@ -424,7 +425,7 @@ private void flushPendingEntries() {
 
 ```
 上面的代码和`MyBatis`的拦截器还没有关系，但是`MyBatis`中拦截器的声明方式是通用的，关键之处在于`plugin`方法的实现，该方法使用`Mybatis`实现的代理类[Plugin][]，返回一个动态代理对象，`wrap`方法实现如下：
-```java
+```
 public static Object wrap(Object target, Interceptor interceptor) {
     Map<Class<?>, Set<Method>> signatureMap = getSignatureMap(interceptor);
     Class<?> type = target.getClass();
@@ -440,7 +441,7 @@ public static Object wrap(Object target, Interceptor interceptor) {
 ```
 首先根据注解配置返回一个被代理类和该类被代理方法的`Map`，之后获取被拦截的对象即target的所有接口中存在于`signatureMap`的接口，并以这些接口为参数创建动态代理对象，代理对象是`new Plugin(target, interceptor, signatureMap)`
 该对象实现了`InvocationHandler`接口，`invoke`方法实现如下:
-```java
+```
 public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
         Set<Method> methods = signatureMap.get(method.getDeclaringClass());
@@ -454,7 +455,7 @@ public Object invoke(Object proxy, Method method, Object[] args) throws Throwabl
 }
 ```
 首先判断当前调用的方法是否是需要拦截的方法，如果是则创建一个[Invocation][]并调用拦截器的`intercept`方法，[Invocation][]维护了被代理的对象、被代理的方法和方法参数。`MyBatis`的拦截器实现原理就是简单的利用Java的动态代理，而拦截器对目标类的拦截是在创建目标类的地方做的，如创建[Executor][]时:
-```java
+```
 public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
     executorType = executorType == null ? defaultExecutorType : executorType;
     executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
@@ -474,7 +475,7 @@ public Executor newExecutor(Transaction transaction, ExecutorType executorType) 
 }
 ```
 类似`executor = (Executor) interceptorChain.pluginAll(executor)`存在于所有支持拦截的类的创建方法中，在解析`mybatis-config.xml`时已经将所有的拦截器添加到了`interceptorChain`中，`interceptorChain`是[InterceptorChain][]类，其`pluginAll`方法如下:
-```java
+```
 public Object pluginAll(Object target) {
     for (Interceptor interceptor : interceptors) {
         target = interceptor.plugin(target);
@@ -483,13 +484,13 @@ public Object pluginAll(Object target) {
 }
 ```
 通过循环应用所有的拦截器，所以拦截器拦截的对象也有可能是一个拦截器，如果想要实现同时运行多个拦截器，则拦截器中需要调用[Invocation][]的`proceed`方法(最后一个拦截器如果想返回一个固定的值而忽略数据库操作的值可以不调用该方法)，该方法代码如下:
-```java
+```
 public Object proceed() throws InvocationTargetException, IllegalAccessException {
     return method.invoke(target, args);
 }
 ```
 如果某个拦截器拦截的是另一个拦截器，则需要在处理完后调用[Invocation][]的`proceed`方法将调用传递到后面的拦截器，如某个实现了更新时对密码加密，查询时解密的拦截器实现:
-```java
+```
 @Intercepts({@Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),
         @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class,
                 RowBounds.class, ResultHandler.class})})
@@ -557,7 +558,7 @@ MyBatis的事务管理分为两种形式:
         
 在解析`mybatis-config.xml`文件，创建[Environment][]对象时会根据type创建不同的[TransactionFactory][]，分别创建不同的[Transaction][]，[Executor][]在执行数据库操作时获取的数据库连接就是从[Transaction][]对象创建而来的，下面分析两种[Transaction][]的实现:
 - JdbcTransaction:
-    ```java
+    ```
     @Override
     public void commit() throws SQLException {
         if (connection != null && !connection.getAutoCommit()) {
@@ -580,7 +581,7 @@ MyBatis的事务管理分为两种形式:
     ```
 
 - ManagedTransaction:
-    ```java
+    ```
     @Override
     public void commit() throws SQLException {
         // Does nothing
@@ -593,6 +594,88 @@ MyBatis的事务管理分为两种形式:
     ```
 [JdbcTransaction][]将`commit/rollback`交给了数据库自己处理，[ManagedTransaction][]不实现`commit/rollback`方法，将`commit/rollback`交给了容器处理，
 所以如果使用`MyBatis`构建本地程序，而不是WEB程序，若将`type`设置成`MANAGED`，那么执行的任何`update`操作，即使最后执行了`commit`操作，数据也不会保留，不会对数据库造成任何影响。因为将`MyBatis`配置成了`MANAGED`，即`MyBatis`自己不管理事务，而我们又是运行的本地程序，没有事务管理功能，所以对数据库的`update`操作都是无效的。
+
+如果是JDBC的事务管理机制，则MyBatis的`commit/rollback`过程是，除了select方法外，每次`DefaultSqlSession`执行`insert、update、delete`等方法时设置标志位`dirty`为`true`，代码如下:
+```
+public int update(String statement, Object parameter) {
+    try {
+        dirty = true;
+        MappedStatement ms = configuration.getMappedStatement(statement);
+        return executor.update(ms, wrapCollection(parameter));
+    } catch (Exception e) {
+        throw ExceptionFactory.wrapException("Error updating database.  Cause: " + e, e);
+    } finally {
+        ErrorContext.instance().reset();
+    }
+}
+```
+`SqlSession`的使用模式如下:
+```
+final SqlSession sqlSession = sqlSessionFactory.openSession();
+try {
+    // do something
+} finally {
+    sqlSession.close();
+}
+```
+每次`SqlSession`的获取和使用都伴随着一个close，代码如下:
+```
+public void close() {
+    try {
+        executor.close(isCommitOrRollbackRequired(false));
+        closeCursors();
+        dirty = false;
+    } finally {
+        ErrorContext.instance().reset();
+    }
+}
+```
+`executor.close()`方法代码如下:
+```
+public void close(boolean forceRollback) {
+    try {
+        try {
+            rollback(forceRollback);
+        } finally {
+            if (transaction != null) {
+                transaction.close();
+            }
+        }
+    } catch (SQLException e) {
+        // Ignore.  There's nothing that can be done at this point.
+        log.warn("Unexpected exception on closing transaction.  Cause: " + e);
+    } finally {
+        transaction = null;
+        deferredLoads = null;
+        localCache = null;
+        localOutputParameterCache = null;
+        closed = true;
+    }
+}
+```
+`rollback`方法执行缓存的清空工作，并根据`forceRollback`判断是否需要执行rollback，`forceRollback`的值是`isCommitOrRollbackRequired`方法返回的，
+`isCommitOrRollbackRequired`方法代码如下:
+```
+private boolean isCommitOrRollbackRequired(boolean force) {
+    return (!autoCommit && dirty) || force;
+}
+```
+`autoCommit`是在`sqlSessionFactory`调用`openSession`创建`SqlSession`时传入的，如果不传该参数则默认为false，而`dirty`在执行任何数据库的`update`操作时都会被设置成true，所以在默认情况下，如果不执行
+`SqlSession`的`commit()`方法则在该`SqlSession`上执行的数据库更新操作都不会生效，因为在调用`SqlSession`的`close`方法时会执行rollback操作。而如果在使用`SqlSession`期间执行发生异常需要rollback时需要手动调用`SqlSession`的`rollback`方法，
+`SelSession`的`rollback`方法代码如下:
+```public void rollback(boolean force) {
+    try {
+        executor.rollback(isCommitOrRollbackRequired(force));
+        dirty = false;
+    } catch (Exception e) {
+        throw ExceptionFactory.wrapException("Error rolling back transaction.  Cause: " + e, e);
+    } finally {
+        ErrorContext.instance().reset();
+    }
+}
+```
+同样是根据`isCommitOrRollbackRequired`方法判断是否需要执行`rollback`，而在`autoCommit`为`true`的情况下，事务是自动提交的，每次操作都会自动提交，所以回滚也没有意义了，`isCommitOrRollbackRequired`方法返回的将是`false`，所以在创建可能需要`rollback`的`SqlSession`时不应该设置`autoCommit`为true，
+使用时应该自己在数据库操作完成后调用`commit`，并在发生异常时调用`rollback`
 
 [Environment]: src/main/java/org/apache/ibatis/mapping/Environment.java
 [TransactionFactory]: src/main/java/org/apache/ibatis/transaction/TransactionFactory.java

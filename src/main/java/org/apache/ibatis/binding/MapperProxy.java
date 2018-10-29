@@ -52,7 +52,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
         try {
             /*
             代理不止会代理被代理的接口上的方法，还会代理Object.class上的3个方法equals()、hashcode()、toString()，对于这些方法，代理只需要直接调用自己的对应方法即可
-            如调用mapper的toString方法实际上是调用当前代理的toString方法，因为这里的invoke的第一个参数是this，而不想正常的动态代理使用的是被代理对象的方法如Quiver上的
+            如调用mapper的toString方法实际上是调用当前代理的toString方法，因为这里的invoke的第一个参数是this，而不像正常的动态代理使用的是被代理对象的方法如Quiver上的
             动态代理笔记那样，是因为Mybatis根本没有创建一个被代理对象，只有一个代理对象，就像这个代理类的构造函数中只传入了被代理的接口类，所以只能调用这个代理本身的Object.class
             上对应的方法了
              */
@@ -64,6 +64,8 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
         } catch (Throwable t) {
             throw ExceptionUtil.unwrapThrowable(t);
         }
+        //如果不是Object类上声明的方法或者不是默认方法则当前需要执行的方法是mapper中的方法，此时创建一个MapperMethod对象封装需要调用的方法
+        //MapperMethod利用保存在configuration中的MappedStatement和传入的method对象获取当前method对象的信息并构建自身，用于执行当前method
         final MapperMethod mapperMethod = cachedMapperMethod(method);
         return mapperMethod.execute(sqlSession, args);
     }

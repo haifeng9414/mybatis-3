@@ -193,6 +193,7 @@ public class DefaultSqlSession implements SqlSession {
         try {
             dirty = true;
             MappedStatement ms = configuration.getMappedStatement(statement);
+            //wrapCollection包装了一个collection、list或array类型的参数，以collection或list、array为key，参数为值保存到map中
             return executor.update(ms, wrapCollection(parameter));
         } catch (Exception e) {
             throw ExceptionFactory.wrapException("Error updating database.  Cause: " + e, e);

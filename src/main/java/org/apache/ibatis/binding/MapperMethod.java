@@ -58,8 +58,10 @@ public class MapperMethod {
     public Object execute(SqlSession sqlSession, Object[] args) {
         Object result;
         switch (command.getType()) {
+            //INSERT、UPDATE和DELETE都是执行的update操作，代码都是一样的，只有SELECT不一样
             case INSERT: {
                 Object param = method.convertArgsToSqlCommandParam(args);
+                //command.getName()为当前mapper方法的id(类名全路径加方法名称组成)
                 result = rowCountResult(sqlSession.insert(command.getName(), param));
                 break;
             }
@@ -74,14 +76,15 @@ public class MapperMethod {
                 break;
             }
             case SELECT:
+                //判断方法返回值是否是void并且参数中是否包含ResultHandler类型的参数
                 if (method.returnsVoid() && method.hasResultHandler()) {
                     executeWithResultHandler(sqlSession, args);
                     result = null;
-                } else if (method.returnsMany()) {
+                } else if (method.returnsMany()) { //如果返回值是数组或者集合
                     result = executeForMany(sqlSession, args);
-                } else if (method.returnsMap()) {
+                } else if (method.returnsMap()) { //如果方法指定了MapKey注解(用于指定返回的数据的哪个列作为返回值的key)并且返回值是Map类型的
                     result = executeForMap(sqlSession, args);
-                } else if (method.returnsCursor()) {
+                } else if (method.returnsCursor()) { //如何返回值类型是Cursor，Cursor类似于JDBC里的ResultSet类，当查询百万级的数据的时候，使用游标可以节省内存的消耗，不需要一次性取出所有数据，可以进行逐条处理或逐条取出部分批量处理
                     result = executeForCursor(sqlSession, args);
                 } else {
                     //获取参数名对应的参数值，如果存在多个参数则保存到了map中

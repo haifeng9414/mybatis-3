@@ -83,12 +83,34 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
         return configuration;
     }
 
+    //execType表示
     private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level, boolean autoCommit) {
         Transaction tx = null;
         try {
+            /*
+            environment在mybatis-config.xml中配置的
+            <environments default="development">
+              <environment id="development">
+                <transactionManager type="JDBC">
+                  <property name="..." value="..."/>
+                </transactionManager>
+                <dataSource type="POOLED">
+                  <property name="driver" value="${driver}"/>
+                  <property name="url" value="${url}"/>
+                  <property name="username" value="${username}"/>
+                  <property name="password" value="${password}"/>
+                </dataSource>
+              </environment>
+            </environments>
+             */
             final Environment environment = configuration.getEnvironment();
+            //environment的配置中的transactionManager指定了transaction的type，如上的JDBC，在解析mybatis-config.xml时会根据这个值
+            //作为别名获取TransactionFactory并保存到environment中
             final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+            //Transaction能执行提交和rollback操作，transactionFactory通过传入newTransaction方法的datasource对象(JDBC原生的datasource)获取到connection
+            //并设置上TransactionIsolationLevel和autoCommit
             tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
+            //Executor负责执行数据库操作
             final Executor executor = configuration.newExecutor(tx, execType);
             return new DefaultSqlSession(configuration, executor, autoCommit);
         } catch (Exception e) {

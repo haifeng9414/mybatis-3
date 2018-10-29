@@ -32,6 +32,9 @@ import java.util.Map;
 /**
  * @author Clinton Begin
  */
+/*
+MyBatis的动态SQL就是通过这个类实现的
+ */
 public class XMLScriptBuilder extends BaseBuilder {
 
     private final XNode context;
@@ -52,6 +55,7 @@ public class XMLScriptBuilder extends BaseBuilder {
 
 
     private void initNodeHandlerMap() {
+        //根据名称区分不同的动态SQL解析过程
         nodeHandlerMap.put("trim", new TrimHandler());
         nodeHandlerMap.put("where", new WhereHandler());
         nodeHandlerMap.put("set", new SetHandler());
@@ -64,11 +68,15 @@ public class XMLScriptBuilder extends BaseBuilder {
     }
 
     public SqlSource parseScriptNode() {
+        //这里是获取SqlSource对象的入口，parseDynamicTags会解析整个SQL，并把SQL分解成多个不同类型的SqlNode
         MixedSqlNode rootSqlNode = parseDynamicTags(context);
         SqlSource sqlSource = null;
         if (isDynamic) {
+            //如果包含需要动态解析的内容，如包含${}变量，<where>等标签则创建DynamicSqlSource
             sqlSource = new DynamicSqlSource(configuration, rootSqlNode);
         } else {
+            //如果不需要解析动态SQL则rootSqlNode里应该只会有一个StaticTextSqlNode，而RawSqlSource只需要负责调用StaticTextSqlNode
+            //返回初始SQL
             sqlSource = new RawSqlSource(configuration, rootSqlNode, parameterType);
         }
         return sqlSource;
@@ -79,13 +87,17 @@ public class XMLScriptBuilder extends BaseBuilder {
         NodeList children = node.getNode().getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             XNode child = node.newXNode(children.item(i));
+            //如果是字符串类型则使用TextSqlNode表示
             if (child.getNode().getNodeType() == Node.CDATA_SECTION_NODE || child.getNode().getNodeType() == Node.TEXT_NODE) {
                 String data = child.getStringBody("");
                 TextSqlNode textSqlNode = new TextSqlNode(data);
+                //TextSqlNode通过GenericTokenParser解析${}，同时如果包含${}则表示是dynamic的，#{}不会被认为是动态SQL，#{}的变量最后会统一由
+                //SqlSourceBuilder处理成JDBC的变量占位符即?(DynamicSqlSource和RawSqlSource都会用SqlSourceBuilder处理SQL)
                 if (textSqlNode.isDynamic()) {
                     contents.add(textSqlNode);
                     isDynamic = true;
                 } else {
+                    //如果不是dynamic的则使用StaticTextSqlNode类，该类在解析时将直接返回原始的字符串
                     contents.add(new StaticTextSqlNode(data));
                 }
             } else if (child.getNode().getNodeType() == Node.ELEMENT_NODE) { // issue #628
@@ -188,6 +200,7 @@ public class XMLScriptBuilder extends BaseBuilder {
 
         @Override
         public void handleNode(XNode nodeToHandle, List<SqlNode> targetContents) {
+            //使用parseDynamicTags解析<if></>里的子元素保存到MixedSqlNode中
             MixedSqlNode mixedSqlNode = parseDynamicTags(nodeToHandle);
             String test = nodeToHandle.getStringAttribute("test");
             IfSqlNode ifSqlNode = new IfSqlNode(mixedSqlNode, test);
@@ -216,8 +229,11 @@ public class XMLScriptBuilder extends BaseBuilder {
         public void handleNode(XNode nodeToHandle, List<SqlNode> targetContents) {
             List<SqlNode> whenSqlNodes = new ArrayList<SqlNode>();
             List<SqlNode> otherwiseSqlNodes = new ArrayList<SqlNode>();
+            //获取所有的when和otherwise节点
             handleWhenOtherwiseNodes(nodeToHandle, whenSqlNodes, otherwiseSqlNodes);
+            //确保只有一个otherwiseSqlNodes节点
             SqlNode defaultSqlNode = getDefaultSqlNode(otherwiseSqlNodes);
+            //ChooseSqlNode节点就很简单的遍历when元素，如果都不满足就使用defaultSqlNode
             ChooseSqlNode chooseSqlNode = new ChooseSqlNode(whenSqlNodes, defaultSqlNode);
             targetContents.add(chooseSqlNode);
         }
@@ -227,6 +243,7 @@ public class XMLScriptBuilder extends BaseBuilder {
             for (XNode child : children) {
                 String nodeName = child.getNode().getNodeName();
                 NodeHandler handler = nodeHandlerMap.get(nodeName);
+                //when元素和if元素功能是一样的，when元素的解析就使用IfHandler
                 if (handler instanceof IfHandler) {
                     handler.handleNode(child, ifSqlNodes);
                 } else if (handler instanceof OtherwiseHandler) {

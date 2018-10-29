@@ -56,14 +56,16 @@ public class PropertyParser {
     }
 
     public static String parse(String string, Properties variables) {
+        //VariableTokenHandler持有properties、enableDefaultValue和defaultValueSeparator的配置
         VariableTokenHandler handler = new VariableTokenHandler(variables);
+        //GenericTokenParser负责解析
         GenericTokenParser parser = new GenericTokenParser("${", "}", handler);
         return parser.parse(string);
     }
 
     /*
     从variables中获取content对应的数据，如果开启了enableDefaultValue则content可能不只是key，还包含默认值，处理默认值的过程也由该类处理
-    但是mybatis配置文件中的<properties></properties>里是不支持默认值的，因为在解析这个元素时还处于手机variables阶段，除非在创建XMLConfigBuilder
+    但是mybatis配置文件中的<properties></properties>里是不支持默认值的，因为在解析这个元素时还处于收集variables阶段，除非在创建XMLConfigBuilder
     的时候手动创建Properties并设置了org.apache.ibatis.parsing.PropertyParser.enable-default-value属性为true，即
     properties.setProperty("org.apache.ibatis.parsing.PropertyParser.enable-default-value", "true");
     sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader, properties);

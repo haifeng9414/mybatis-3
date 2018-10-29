@@ -49,6 +49,13 @@ public class ForEachSqlNode implements SqlNode {
         this.configuration = configuration;
     }
 
+    /*
+    <foreach item="item" index="index" collection="list"
+        open="(" separator="," close=")">
+          #{item}
+    </foreach>
+    通过Ognl获取需要遍历的对象并遍历该对象的元素
+     */
     @Override
     public boolean apply(DynamicContext context) {
         Map<String, Object> bindings = context.getBindings();

@@ -431,7 +431,6 @@ public final class TypeHandlerRegistry {
     }
 
     // scan
-
     public void register(String packageName) {
         ResolverUtil resolverUtil = new ResolverUtil();
         //获取所有TypeHandler的实现类

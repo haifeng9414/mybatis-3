@@ -109,7 +109,9 @@ public abstract class BaseExecutor implements Executor {
         if (closed) {
             throw new ExecutorException("Executor was closed.");
         }
+        //更新操作需要清空缓存
         clearLocalCache();
+        //doUpdate是抽象方法，由子类实现具体的更新操作
         return doUpdate(ms, parameter);
     }
 
@@ -127,7 +129,10 @@ public abstract class BaseExecutor implements Executor {
 
     @Override
     public <E> List<E> query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler) throws SQLException {
+        //BoundSql保存了解析完成的SQL(如果存在参数则参数为JDBC的参数占位符即?)、mapper方法的参数的ParameterMapping对象和这里传入的用于创建
+        //BoundSql的parameter，parameter为用户调用mapper方法时传入的参数
         BoundSql boundSql = ms.getBoundSql(parameter);
+        //根据传入createCacheKey方法的参数创建一个用于唯一标识一次查询的key，该key作为查询结果在缓存中的唯一标识
         CacheKey key = createCacheKey(ms, parameter, rowBounds, boundSql);
         return query(ms, parameter, rowBounds, resultHandler, key, boundSql);
     }
@@ -139,12 +144,14 @@ public abstract class BaseExecutor implements Executor {
         if (closed) {
             throw new ExecutorException("Executor was closed.");
         }
+        //非SELECT操作时isFlushCacheRequired为true，否则为false
         if (queryStack == 0 && ms.isFlushCacheRequired()) {
             clearLocalCache();
         }
         List<E> list;
         try {
             queryStack++;
+            //首先从缓存中获取当前查询的数据，resultHandler不为空时不查询缓存，这就是MyBatis的一级缓存
             list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
             if (list != null) {
                 handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
@@ -317,6 +324,9 @@ public abstract class BaseExecutor implements Executor {
 
     private <E> List<E> queryFromDatabase(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
         List<E> list;
+        //单个mapper实例在一个sqlSession不是线程安全的，所以一般不会出现并发的情况(出现了就有可能导致java.lang.ClassCastException: org.apache.ibatis.executor.ExecutionPlaceholder cannot be cast to xxx的异常，
+        //因为ExecutionPlaceholder为保存到缓存中了，而localCache也不是线程安全的，所以也不是一定会出现这个异常)，当没有发生这个异常时只会导致同一个查询执行两次，所以可以看出mapper没有针对线程安全做处理，这里就不确定为什么
+        //在不考虑线程安全的情况下还要在查询前put一次EXECUTION_PLACEHOLDER，查询后在finally中remove
         localCache.putObject(key, EXECUTION_PLACEHOLDER);
         try {
             list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);

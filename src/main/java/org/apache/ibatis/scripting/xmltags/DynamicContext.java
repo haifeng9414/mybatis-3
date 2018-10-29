@@ -28,6 +28,37 @@ import java.util.Map;
 /**
  * @author Clinton Begin
  */
+/*
+DynamicContext包含了传入mapper的参数和databaseId，如
+PrimitiveSubject getSubject(@Param("id") final int id, @Param("param") Map<String, String> map, @Param("sort") String sort);
+方法将会产生6个参数：
+"param" -> 传入的map
+"id" -> "1"
+"sort" -> "name"
+"param3" -> "name"
+"param1" -> "1"
+"param2" -> 传入的map
+
+同时DynamicContext还会包含当前调用的mapper接口方法的SQL(已经解析完所有的动态SQL，只剩下参数)，如
+<sql id="testSQL">AND ${col} > 0</sql>
+
+<select id="getSubject" resultMap="resultMap">
+    SELECT * FROM subject
+    <where>
+        id = #{id}
+        <include refid="testSQL">
+            <property name="col" value="id"/>
+        </include>
+        <if test="param.name != null">
+            AND name = #{param.name}
+        </if>
+    </where>
+    ORDER BY ${sort}
+</select>
+将会解析成
+SELECT * FROM subject WHERE id = #{id} AND id > 0 AND name = #{param.name}
+并保存到DynamicContext中
+ */
 public class DynamicContext {
 
     public static final String PARAMETER_OBJECT_KEY = "_parameter";

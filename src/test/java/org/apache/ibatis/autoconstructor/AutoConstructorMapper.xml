@@ -23,20 +23,44 @@
 <mapper namespace="org.apache.ibatis.autoconstructor.AutoConstructorMapper">
     <resultMap id="resultMap" type="org.apache.ibatis.autoconstructor.PrimitiveSubject">
         <constructor>
-            <idArg column="id" javaType="_int"/>
-            <arg column="name" javaType="string"/>
-            <arg column="age" javaType="_int"/>
-            <arg column="height" javaType="_int"/>
-            <arg column="weight" javaType="_int"/>
+            <idArg column="id" javaType="Integer"/>
+            <arg column="name" javaType="String"/>
+            <arg column="age" javaType="Integer"/>
+            <arg column="height" javaType="Integer"/>
+            <arg column="weight" javaType="Integer"/>
         </constructor>
     </resultMap>
 
-    <sql id="testSQL">where ${col} > 0</sql>
-
     <cache/>
+
+    <sql id="testSQL">AND ${col} > 0</sql>
 
     <select id="getSubject" resultMap="resultMap">
         SELECT * FROM subject
-        <include refid="testSQL"><property name="col" value="id"/></include>
+        <where>
+            id = #{id}
+            <include refid="testSQL">
+                <property name="col" value="id"/>
+            </include>
+            <if test="param.name != null">
+                AND name = #{param.name}
+            </if>
+        </where>
+        <if test="sort != null">
+            ORDER BY ${sort}
+        </if>
     </select>
+
+    <select id="getSubjectList" resultMap="resultMap">
+        SELECT * FROM subject
+        WHERE id IN
+        <foreach item="item" index="index" collection="ids"
+                 open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <update id="updateSubject">
+        UPDATE subject SET name = #{subject.name} WHERE id = #{subject.id}
+    </update>
 </mapper>

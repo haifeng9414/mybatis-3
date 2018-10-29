@@ -216,11 +216,12 @@ public class XMLMapperBuilder extends BaseBuilder {
             Long flushInterval = context.getLongAttribute("flushInterval");
             //缓存的大小，默认1024
             Integer size = context.getIntAttribute("size");
-            //只读的缓存会给所有调用者返回缓存对象相同的实例，可读写的会返回一个序列化的实例，这样会慢一些但是更安全，所以默认是false
+            //只读的缓存会给所有调用者返回缓存对象相同的实例，可读写的会返回一个序列化的实例，这样会慢一些但是更安全，默认是false
             boolean readWrite = !context.getBooleanAttribute("readOnly", false);
             //若缓存中找不到对应的key，是否会一直blocking，直到有对应的数据进入缓存
             boolean blocking = context.getBooleanAttribute("blocking", false);
             Properties props = context.getChildrenAsProperties();
+            //缓存对象的创建和使用很值得借鉴
             builderAssistant.useNewCache(typeClass, evictionClass, flushInterval, size, readWrite, blocking, props);
         }
     }
@@ -273,6 +274,19 @@ public class XMLMapperBuilder extends BaseBuilder {
       <result property="username" column="user_name"/>
       <result property="password" column="hashed_password"/>
     </resultMap>
+    或
+    <resultMap id="blogResult" type="Blog">
+      <association property="author" column="author_id" javaType="Author" select="selectAuthor"/>
+    </resultMap>
+
+    <select id="selectBlog" resultMap="blogResult">
+      SELECT * FROM BLOG WHERE ID = #{id}
+    </select>
+
+    <select id="selectAuthor" resultType="Author">
+      SELECT * FROM AUTHOR WHERE ID = #{id}
+    </select>
+    使用association进行关联
      */
     private ResultMap resultMapElement(XNode resultMapNode, List<ResultMapping> additionalResultMappings) throws Exception {
         ErrorContext.instance().activity("processing " + resultMapNode.getValueBasedIdentifier());
@@ -295,6 +309,47 @@ public class XMLMapperBuilder extends BaseBuilder {
             if ("constructor".equals(resultChild.getName())) {
                 processConstructorElement(resultChild, typeClass, resultMappings);
             } else if ("discriminator".equals(resultChild.getName())) {
+                /*
+                鉴别器，类似switch，语法如下：
+                <resultMap id="vehicleResult" type="Vehicle">
+                 <id property="id" column="id" />
+                 <result property="vin" column="vin"/>
+                 <result property="year" column="year"/>
+                 <result property="make" column="make"/>
+                 <result property="model" column="model"/>
+                 <result property="color" column="color"/>
+                 <discriminator javaType="int" column="vehicle_type">
+                   <case value="1" resultMap="carResult"/>
+                   <case value="2" resultMap="truckResult"/>
+                   <case value="3" resultMap="vanResult"/>
+                   <case value="4" resultMap="suvResult"/>
+                 </discriminator>
+                /resultMap>
+                或
+                <resultMap id="vehicleResult" type="Vehicle">
+                  <id property="id" column="id" />
+                  <result property="vin" column="vin"/>
+                  <result property="year" column="year"/>
+                  <result property="make" column="make"/>
+                  <result property="model" column="model"/>
+                  <result property="color" column="color"/>
+                  <discriminator javaType="int" column="vehicle_type">
+                    <case value="1" resultType="carResult">
+                      <result property="doorCount" column="door_count" />
+                    </case>
+                    <case value="2" resultType="truckResult">
+                      <result property="boxSize" column="box_size" />
+                      <result property="extendedCab" column="extended_cab" />
+                    </case>
+                    <case value="3" resultType="vanResult">
+                      <result property="powerSlidingDoor" column="power_sliding_door" />
+                    </case>
+                    <case value="4" resultType="suvResult">
+                      <result property="allWheelDrive" column="all_wheel_drive" />
+                    </case>
+                  </discriminator>
+                </resultMap>
+                 */
                 discriminator = processDiscriminatorElement(resultChild, typeClass, resultMappings);
             } else {
                 List<ResultFlag> flags = new ArrayList<ResultFlag>();
@@ -304,6 +359,8 @@ public class XMLMapperBuilder extends BaseBuilder {
                 resultMappings.add(buildResultMappingFromContext(resultChild, typeClass, flags));
             }
         }
+        //将所有属性都添加到ResultMapResolver统一解析，好处是能够处理出现IncompleteElementException异常的情况，当发生IncompleteElementException时
+        //只要将当前的resultMapResolver添加到addIncompleteResultMap留待之后解析
         ResultMapResolver resultMapResolver = new ResultMapResolver(builderAssistant, id, typeClass, extend, discriminator, resultMappings, autoMapping);
         try {
             return resultMapResolver.resolve();
@@ -345,6 +402,29 @@ public class XMLMapperBuilder extends BaseBuilder {
         Map<String, String> discriminatorMap = new HashMap<String, String>();
         for (XNode caseChild : context.getChildren()) {
             String value = caseChild.getStringAttribute("value");
+            /*
+            如果是
+            <discriminator javaType="int" column="vehicle_type">
+              <case value="1" resultMap="carResult"/>
+              <case value="2" resultMap="truckResult"/>
+            </discriminator>
+            的形式则保存case和resultMap的关联到discriminatorMap，如果是
+            <discriminator javaType="int" column="vehicle_type">
+              <case value="1" resultType="carResult">
+                <result property="doorCount" column="door_count" />
+              </case>
+              <case value="2" resultType="truckResult">
+                <result property="boxSize" column="box_size" />
+                <result property="extendedCab" column="extended_cab" />
+              </case>
+            </discriminator>
+            的形式则把当个case如:
+            <case value="1" resultType="carResult">
+              <result property="doorCount" column="door_count" />
+            </case>
+            作为一个resultMap进行解析并保存到MapperBuilderAssistant中(和普通的resultMap一样，MapperBuilderAssistant是在
+            XMLMapperBuilder构造函数中创建的)
+             */
             String resultMap = caseChild.getStringAttribute("resultMap", processNestedResultMappings(caseChild, resultMappings));
             discriminatorMap.put(value, resultMap);
         }
@@ -369,6 +449,7 @@ public class XMLMapperBuilder extends BaseBuilder {
       from some_table t1
         cross join some_table t2
     </select>
+    将找到的SQL片段保存到configuration并用mapper的namespace+SQL的ID作为唯一标示
      */
     private void sqlElement(List<XNode> list, String requiredDatabaseId) throws Exception {
         for (XNode context : list) {

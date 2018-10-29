@@ -38,6 +38,7 @@ public class RoutingStatementHandler implements StatementHandler {
 
     public RoutingStatementHandler(Executor executor, MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
 
+        //statementType默认是PREPARED，也就是支持带参数的SQL
         switch (ms.getStatementType()) {
             case STATEMENT:
                 delegate = new SimpleStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);

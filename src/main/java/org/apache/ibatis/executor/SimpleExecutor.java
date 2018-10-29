@@ -81,8 +81,12 @@ public class SimpleExecutor extends BaseExecutor {
 
     private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
         Statement stmt;
+        //如果打开log的debug选项的话用动态代理对connection进行代理实现日志记录功能
         Connection connection = getConnection(statementLog);
+        //transaction是mybatis-config.xml中配置的environment中的transactionManager指定的TransactionFactory创建出来的，如JdbcTransactionFactory
+        //将会创建JdbcTransaction，handler.prepare通过connection创建Statement并设置timeout、fetchSize等属性
         stmt = handler.prepare(connection, transaction.getTimeout());
+        //调用保存在各个参数的ParameterMapping对象中的typeHandler设置当前Statement的SQL的参数
         handler.parameterize(stmt);
         return stmt;
     }

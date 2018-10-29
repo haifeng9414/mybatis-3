@@ -31,6 +31,8 @@ public class IfSqlNode implements SqlNode {
 
     @Override
     public boolean apply(DynamicContext context) {
+        //contents里包含了<if></>的所有子元素，在evaluator.evaluateBoolean返回true的情况下依次解析
+        //evaluator.evaluateBoolean通过OgnlCache获取表达式的值，就不深究了
         if (evaluator.evaluateBoolean(test, context.getBindings())) {
             contents.apply(context);
             return true;

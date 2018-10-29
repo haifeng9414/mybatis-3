@@ -39,6 +39,10 @@ public class TextSqlNode implements SqlNode {
     }
 
     public boolean isDynamic() {
+        //isDynamic只是简单的检查是否是动态SQL，检查的方法是使用GenericTokenParser类解析字符串，如果
+        //字符串中包含${}的内容则GenericTokenParser会调用传入的TokenHandle类即这里的DynamicCheckerTokenParser
+        //来解析${xxx}变量，而DynamicCheckerTokenParser的目的只是检查是否是动态SQL，所以没必要真的解析，查看DynamicCheckerTokenParser
+        //的实现可以发现该类只是简单的标记下dynamic为true
         DynamicCheckerTokenParser checker = new DynamicCheckerTokenParser();
         GenericTokenParser parser = createParser(checker);
         parser.parse(text);
@@ -47,6 +51,9 @@ public class TextSqlNode implements SqlNode {
 
     @Override
     public boolean apply(DynamicContext context) {
+        //这里和isDynamic不一样的地方是这里需要真正的解析字符串中的${xxx}变量，所以使用BindingTokenParser而不是
+        //DynamicCheckerTokenParser解析
+        //DynamicContext类的内容查看DynamicContext类上的注释
         GenericTokenParser parser = createParser(new BindingTokenParser(context, injectionFilter));
         context.appendSql(parser.parse(text));
         return true;
@@ -68,14 +75,18 @@ public class TextSqlNode implements SqlNode {
 
         @Override
         public String handleToken(String content) {
+            //获取传入mapper中的所有参数
             Object parameter = context.getBindings().get("_parameter");
             if (parameter == null) {
                 context.getBindings().put("value", null);
             } else if (SimpleTypeRegistry.isSimpleType(parameter.getClass())) {
+                //如果是简单实例类型则直接添加到context中
+                //？为啥要多一步放到value的过程
                 context.getBindings().put("value", parameter);
             }
             Object value = OgnlCache.getValue(content, context.getBindings());
             String srtValue = (value == null ? "" : String.valueOf(value)); // issue #274 return "" instead of "null"
+            //如果存在injectionFilter则用正则解析下输入的参数合法性
             checkInjection(srtValue);
             return srtValue;
         }

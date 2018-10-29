@@ -29,10 +29,7 @@ import org.junit.Test;
 
 import java.io.Reader;
 import java.sql.Connection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 public class AutoConstructorTest {
     private static SqlSessionFactory sqlSessionFactory;
@@ -64,23 +61,58 @@ public class AutoConstructorTest {
         final SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
             final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
-            Map<String, String> map = new HashMap<String, String>() {{
-                put("test1", "demo1");
-                put("test2", "demo2");
+            Map<String, String> map = new HashMap<>() {{
+                put("name", "a");
             }};
-            final PrimitiveSubject subject = mapper.getSubject(1, map, new HashMap<>());
+            final PrimitiveSubject subject = mapper.getSubject(1, map, "name");
+            mapper.getSubject(1, map, "name");
             Assert.assertNotNull(subject);
+            System.out.println(subject.getName());
         } finally {
             sqlSession.close();
         }
     }
 
-    @Test(expected = PersistenceException.class)
+    @Test()
     public void primitiveSubjects() {
         final SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
             final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
             mapper.getSubjects();
+        } finally {
+            sqlSession.close();
+        }
+    }
+
+    @Test()
+    public void updateSubject() {
+        final SqlSession sqlSession = sqlSessionFactory.openSession();
+        try {
+            final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
+            int id = 1;
+            String name = UUID.randomUUID().toString().substring(0, 5);
+            System.out.println("update before:" + mapper.getSubject(id, new HashMap<>(), null));
+            mapper.updateSubject(new PrimitiveSubject() {{
+                setId(id);
+                setName(name);
+            }});
+//            sqlSession.commit();
+            System.out.println("update after:" + mapper.getSubject(id, new HashMap<>(), null));
+        } finally {
+            sqlSession.close();
+        }
+    }
+
+    @Test()
+    public void primitiveSubjectList() {
+        final SqlSession sqlSession = sqlSessionFactory.openSession();
+        try {
+            final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
+            List<String> ids = new ArrayList<>();
+            ids.add("1");
+            ids.add("2");
+            List<PrimitiveSubject> subjects = mapper.getSubjectList(ids);
+            System.out.println(Arrays.toString(subjects.toArray()));
         } finally {
             sqlSession.close();
         }

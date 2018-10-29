@@ -39,6 +39,7 @@ public class PreparedStatementHandler extends BaseStatementHandler {
     @Override
     public int update(Statement statement) throws SQLException {
         PreparedStatement ps = (PreparedStatement) statement;
+        //参数已经Executor的doUpdate方法中设置好了，直接执行SQL即可
         ps.execute();
         int rows = ps.getUpdateCount();
         Object parameterObject = boundSql.getParameterObject();
@@ -57,6 +58,9 @@ public class PreparedStatementHandler extends BaseStatementHandler {
     public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
         PreparedStatement ps = (PreparedStatement) statement;
         ps.execute();
+        //默认是DefaultResultSetHandler，在BaseStatementHandler的构造函数中由configuration创建的
+        //handleResultSets返回的结果将是用户需要的数据，根据resultType或resultMap指定的构造方式，将数据库中的数据转换程对象
+        //同时也根据rowBounds处理了返回的数据的数量
         return resultSetHandler.<E>handleResultSets(ps);
     }
 
@@ -86,6 +90,7 @@ public class PreparedStatementHandler extends BaseStatementHandler {
 
     @Override
     public void parameterize(Statement statement) throws SQLException {
+        //parameterHandler由LanguageDriver创建，默认的XMLLanguageDriver创建的parameterHandler为DefaultParameterHandler
         parameterHandler.setParameters((PreparedStatement) statement);
     }
 

@@ -18,13 +18,16 @@ package org.apache.ibatis.autoconstructor;
 import java.io.Serializable;
 
 public class PrimitiveSubject implements Serializable {
-    private final int id;
-    private final String name;
-    private final int age;
-    private final int height;
-    private final int weight;
+    private Integer id;
+    private String name;
+    private Integer age;
+    private Integer height;
+    private Integer weight;
 
-    public PrimitiveSubject(final int id, final String name, final int age, final int height, final int weight) {
+    public PrimitiveSubject() {
+    }
+
+    public PrimitiveSubject(Integer id, String name, Integer age, Integer height, Integer weight) {
         this.id = id;
         this.name = name;
         this.age = age;
@@ -32,7 +35,7 @@ public class PrimitiveSubject implements Serializable {
         this.weight = weight;
     }
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
@@ -40,15 +43,46 @@ public class PrimitiveSubject implements Serializable {
         return name;
     }
 
-    public int getAge() {
+    public Integer getAge() {
         return age;
     }
 
-    public int getHeight() {
+    public Integer getHeight() {
         return height;
     }
 
-    public int getWeight() {
+    public Integer getWeight() {
         return weight;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setAge(Integer age) {
+        this.age = age;
+    }
+
+    public void setHeight(Integer height) {
+        this.height = height;
+    }
+
+    public void setWeight(Integer weight) {
+        this.weight = weight;
+    }
+
+    @Override
+    public String toString() {
+        return "PrimitiveSubject{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", age=" + age +
+                ", height=" + height +
+                ", weight=" + weight +
+                '}';
     }
 }

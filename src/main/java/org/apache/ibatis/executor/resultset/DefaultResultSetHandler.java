@@ -170,6 +170,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         final List<Object> multipleResults = new ArrayList<Object>();
 
         int resultSetCount = 0;
+        //ResultSetWrapper保存了从ResultSet中获取到的结果的列信息，如列名、列数量、JDBC类型等
         ResultSetWrapper rsw = getFirstResultSet(stmt);
 
         List<ResultMap> resultMaps = mappedStatement.getResultMaps();
@@ -182,6 +183,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
             cleanUpAfterHandlingResultSet();
             resultSetCount++;
         }
+
 
         String[] resultSets = mappedStatement.getResultSets();
         if (resultSets != null) {
@@ -198,6 +200,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
             }
         }
 
+        //multipleResults保存的是list，如果multipleResults只包含一个元素则直接提取出该list元素返回
         return collapseSingleResultList(multipleResults);
     }
 
@@ -283,8 +286,17 @@ public class DefaultResultSetHandler implements ResultSetHandler {
                 handleRowValues(rsw, resultMap, null, RowBounds.DEFAULT, parentMapping);
             } else {
                 if (resultHandler == null) {
+                    //resultHandler一般传入的是null(DefaultSqlSession的selectList方法)，如果为空时则在这里用DefaultResultHandler处理
+                    //DefaultResultHandler处理结果对象的方式是简单的把结果放到list中，而这也是大多数情况下的期望行为(大部分mapper接口的返回值要么是list要么是一个对象，
+                    //如果是一个对象的时候也只需要list.get(0)即可，DefaultSqlSession的selectOne就是这么实现的)
+                    //MyBatis中想要指定resultHandler可以将mapper的返回值设置为void并且在参数中添加一个ResultHandler类型的参数(MapperMethod的case SELECT的处理)，
+                    //该参数将替代defaultResultHandler对结果进行处理
+                    //objectFactory用于根据获取到的数据库参数和resultMap中指定的类的属性列表创建对象
                     DefaultResultHandler defaultResultHandler = new DefaultResultHandler(objectFactory);
                     handleRowValues(rsw, resultMap, defaultResultHandler, rowBounds, null);
+                    //handleRowValues对所有结果都调用了一次resultHandler的handleResult方法，这里的defaultResultHandler的处理结果将是所有的查询结果(已经处理过分页查询了，即已经根据传入的rowBounds限制了结果的个数，实现方法是在遍历结果之前先跳过rowBounds指定的offset行数据，之后在每次遍历的时候判断当前遍历的数据行是否操作了rowBounds指定的limit限制)
+                    //将会保存到defaultResultHandler的list中，并通过getResultList方法获取
+                    //这里将结果保存到multipleResults中，注意getResultList方法返回的是list，所以multipleResults的元素一般情况下是list
                     multipleResults.add(defaultResultHandler.getResultList());
                 } else {
                     handleRowValues(rsw, resultMap, resultHandler, rowBounds, null);
@@ -336,7 +348,9 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         skipRows(rsw.getResultSet(), rowBounds);
         while (shouldProcessMoreRows(resultContext, rowBounds) && rsw.getResultSet().next()) {
             ResultMap discriminatedResultMap = resolveDiscriminatedResultMap(rsw.getResultSet(), resultMap, null);
+            //rowValue是根据resultType或者resultMap和从数据库中查到的数据构建出来的对象，即需要返回给用户的对象或如果返回值是集合则为集合中的一个元素
             Object rowValue = getRowValue(rsw, discriminatedResultMap);
+            //每次调用该方法都会调用一次resultHandler的handleResult方法，默认情况下的行为就是把结果保存到defaultResultHandler的list中
             storeObject(resultHandler, resultContext, rowValue, parentMapping, rsw.getResultSet());
         }
     }
@@ -351,7 +365,9 @@ public class DefaultResultSetHandler implements ResultSetHandler {
 
     @SuppressWarnings("unchecked" /* because ResultHandler<?> is always ResultHandler<Object>*/)
     private void callResultHandler(ResultHandler<?> resultHandler, DefaultResultContext<Object> resultContext, Object rowValue) {
+        //nextResultObject方法对当前获取到的数据数量次数并指定rowValue为当前需要处理的对象
         resultContext.nextResultObject(rowValue);
+        //默认的resultHandler实现是DefaultResultHandler，DefaultResultHandler的handleResult方法把当前需要处理的结果放到list中保存
         ((ResultHandler<Object>) resultHandler).handleResult(resultContext);
     }
 

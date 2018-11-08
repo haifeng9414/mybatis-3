@@ -42,8 +42,10 @@ public class Plugin implements InvocationHandler {
 
     public static Object wrap(Object target, Interceptor interceptor) {
         Map<Class<?>, Set<Method>> signatureMap = getSignatureMap(interceptor);
+        //这里的target是将被代理的对象，如executor
         Class<?> type = target.getClass();
         Class<?>[] interfaces = getAllInterfaces(type, signatureMap);
+        //如果存在需要被代理的接口方法才进行代理
         if (interfaces.length > 0) {
             return Proxy.newProxyInstance(
                     type.getClassLoader(),
@@ -66,6 +68,7 @@ public class Plugin implements InvocationHandler {
         }
     }
 
+    //map保存Signature注解指定的类为key，Signature注解指定的该类下满足名字等于method，参数为指定类型的方法
     private static Map<Class<?>, Set<Method>> getSignatureMap(Interceptor interceptor) {
         Intercepts interceptsAnnotation = interceptor.getClass().getAnnotation(Intercepts.class);
         // issue #251
@@ -81,6 +84,7 @@ public class Plugin implements InvocationHandler {
                 signatureMap.put(sig.type(), methods);
             }
             try {
+                //如果根据注解的method和args没有找到方法则抛出异常
                 Method method = sig.type().getMethod(sig.method(), sig.args());
                 methods.add(method);
             } catch (NoSuchMethodException e) {
@@ -93,6 +97,7 @@ public class Plugin implements InvocationHandler {
     private static Class<?>[] getAllInterfaces(Class<?> type, Map<Class<?>, Set<Method>> signatureMap) {
         Set<Class<?>> interfaces = new HashSet<Class<?>>();
         while (type != null) {
+            //获取被代理对象的接口，判断是否在Signature注解的配置中
             for (Class<?> c : type.getInterfaces()) {
                 if (signatureMap.containsKey(c)) {
                     interfaces.add(c);

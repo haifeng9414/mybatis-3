@@ -439,7 +439,7 @@ public static Object wrap(Object target, Interceptor interceptor) {
     return target;
 }
 ```
-首先根据注解配置返回一个被代理类和该类被代理方法的`Map`，之后获取被拦截的对象即target的所有接口中存在于`signatureMap`的接口，并以这些接口为参数创建动态代理对象，代理对象是`new Plugin(target, interceptor, signatureMap)`
+首先根据注解配置返回一个被代理类和该类被代理方法的`Map`(根据Signature注解的type找到类，再根据method和args找到方法，最后以类为key，方法为value)，之后获取被拦截的对象即target的所有接口中存在于`signatureMap`的接口，并以这些接口为参数创建动态代理对象，代理对象是`new Plugin(target, interceptor, signatureMap)`
 该对象实现了`InvocationHandler`接口，`invoke`方法实现如下:
 ```
 public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {

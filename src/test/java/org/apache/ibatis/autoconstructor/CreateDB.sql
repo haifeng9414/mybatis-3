@@ -14,10 +14,9 @@
 --    limitations under the License.
 --
 
-DROP TABLE subject
-IF EXISTS;
+DROP TABLE user IF EXISTS;
 
-CREATE TABLE subject (
+CREATE TABLE user (
   id     INT NOT NULL,
   name   VARCHAR(20),
   age    INT NOT NULL,
@@ -25,7 +24,12 @@ CREATE TABLE subject (
   weight INT
 );
 
-INSERT INTO subject (id, name, age, height, weight) VALUES (1, 'a', 10, 100, 45);
-INSERT INTO subject (id, name, age, height, weight) VALUES (2, 'b', 10, NULL, 45);
-INSERT INTO subject (id, name, age, height, weight) VALUES (2, 'b', 10, NULL, NULL);
+INSERT INTO user (id, name, age, height, weight) VALUES (1, 'a', 10, 100, 45);
+INSERT INTO user (id, name, age, height, weight) VALUES (2, 'b', 10, NULL, 45);
+INSERT INTO user (id, name, age, height, weight) VALUES (3, 'c', 11, 120, NULL);
+
+CREATE TABLE phone (
+  user_id    INT NOT NULL,
+  phone    VARCHAR(20) NOT NULL
+);
 

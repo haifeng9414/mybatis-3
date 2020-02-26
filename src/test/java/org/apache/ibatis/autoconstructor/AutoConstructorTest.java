@@ -17,8 +17,6 @@ package org.apache.ibatis.autoconstructor;
 
 import org.apache.ibatis.exceptions.PersistenceException;
 import org.apache.ibatis.io.Resources;
-import org.apache.ibatis.jdbc.ScriptRunner;
-import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
@@ -28,7 +26,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.Reader;
-import java.sql.Connection;
 import java.util.*;
 
 public class AutoConstructorTest {
@@ -61,14 +58,12 @@ public class AutoConstructorTest {
         final SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
             final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
-            Map<String, String> map = new HashMap<>() {{
-                put("name", "a");
-            }};
-            final PrimitiveSubject subject = mapper.getSubject(1, map, "name");
-            mapper.getSubject(1, map, "name");
-            Assert.assertNotNull(subject);
-            System.out.println(subject.getName());
+            Map<String, String> map = new HashMap<>();
+            final PrimitiveUser subject = mapper.getUser(1, map, "name");
+            mapper.getUser(1, map, "name");
+            System.out.println(subject);
         } finally {
+            sqlSession.commit();
             sqlSession.close();
         }
     }
@@ -91,13 +86,13 @@ public class AutoConstructorTest {
             final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
             int id = 1;
             String name = UUID.randomUUID().toString().substring(0, 5);
-            System.out.println("update before:" + mapper.getSubject(id, new HashMap<>(), null));
-            mapper.updateSubject(new PrimitiveSubject() {{
+            System.out.println("update before:" + mapper.getUser(id, new HashMap<>(), null));
+            mapper.updateUser(new PrimitiveUser() {{
                 setId(id);
                 setName(name);
             }});
 //            sqlSession.commit();
-            System.out.println("update after:" + mapper.getSubject(id, new HashMap<>(), null));
+            System.out.println("update after:" + mapper.getUser(id, new HashMap<>(), null));
         } finally {
             sqlSession.close();
         }
@@ -109,9 +104,7 @@ public class AutoConstructorTest {
         try {
             final AutoConstructorMapper mapper = sqlSession.getMapper(AutoConstructorMapper.class);
             List<String> ids = new ArrayList<>();
-            ids.add("1");
-            ids.add("2");
-            List<PrimitiveSubject> subjects = mapper.getSubjectList(ids);
+            List<PrimitiveUser> subjects = mapper.getUserList(ids);
             System.out.println(Arrays.toString(subjects.toArray()));
         } finally {
             sqlSession.close();

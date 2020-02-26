@@ -21,22 +21,24 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="org.apache.ibatis.autoconstructor.AutoConstructorMapper">
-    <resultMap id="resultMap" type="org.apache.ibatis.autoconstructor.PrimitiveSubject">
-        <constructor>
-            <idArg column="id" javaType="Integer"/>
-            <arg column="name" javaType="String"/>
-            <arg column="age" javaType="Integer"/>
-            <arg column="height" javaType="Integer"/>
-            <arg column="weight" javaType="Integer"/>
-        </constructor>
+    <resultMap id="resultMap" type="org.apache.ibatis.autoconstructor.PrimitiveUser">
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="age" property="age"/>
+        <result column="height" property="height"/>
+        <result column="weight" property="weight"/>
+        <collection property="phones" ofType="String" javaType="ArrayList">
+            <result column="phone"/>
+        </collection>
     </resultMap>
 
     <cache/>
 
     <sql id="testSQL">AND ${col} > 0</sql>
 
-    <select id="getSubject" resultMap="resultMap">
-        SELECT * FROM subject
+    <select id="getUser" resultMap="resultMap">
+        SELECT user.*, phone.phone as phone FROM user
+        LEFT JOIN phone ON user.id = phone.user_id
         <where>
             id = #{id}
             <include refid="testSQL">
@@ -51,16 +53,19 @@
         </if>
     </select>
 
-    <select id="getSubjectList" resultMap="resultMap">
-        SELECT * FROM subject
+    <select id="getUserList" resultMap="resultMap">
+        SELECT user.*, phone.phone as phone FROM user
+        LEFT JOIN phone ON user.id = phone.user_id
+        <if test="ids != null and ids.size() > 0">
         WHERE id IN
         <foreach item="item" index="index" collection="ids"
                  open="(" separator="," close=")">
             #{item}
         </foreach>
+        </if>
     </select>
 
-    <update id="updateSubject">
+    <update id="updateUser">
         UPDATE subject SET name = #{subject.name} WHERE id = #{subject.id}
     </update>
 </mapper>

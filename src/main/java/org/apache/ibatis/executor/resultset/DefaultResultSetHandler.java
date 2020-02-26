@@ -321,6 +321,10 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         if (resultMap.hasNestedResultMaps()) {
             ensureNoRowBounds();
             checkResultHandler();
+            //如果存在collection或者association这种嵌套结构则用该函数处理。基本逻辑就是，比如collection的情况，如果resultMapper中存在constructor
+            //则以该属性及该属性所属数据库列的查询结果为key构建CacheKey，如不存在constructor则以所有的result指定的属性作为key构建CacheKey
+            //在获取到多行数据后每次处理一行数据时先构建CacheKey再根据CacheKey获取对象，如果不存在则创建一个，存在则复用，并把collection指定的结果添加到
+            //查询到的缓存对象中。
             handleRowValuesForNestedResultMap(rsw, resultMap, resultHandler, rowBounds, parentMapping);
         } else {
             handleRowValuesForSimpleResultMap(rsw, resultMap, resultHandler, rowBounds, parentMapping);

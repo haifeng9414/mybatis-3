@@ -22,12 +22,12 @@ import java.util.List;
 import java.util.Map;
 
 public interface AutoConstructorMapper {
-    PrimitiveSubject getSubject(@Param("id") final int id, @Param("param") Map<String, String> map, @Param("sort") String sort);
+    PrimitiveUser getUser(@Param("id") final int id, @Param("param") Map<String, String> map, @Param("sort") String sort);
 
     @Select("SELECT * FROM subject")
-    List<PrimitiveSubject> getSubjects();
+    List<PrimitiveUser> getSubjects();
 
-    List<PrimitiveSubject> getSubjectList(@Param("ids") List<String> ids);
+    List<PrimitiveUser> getUserList(@Param("ids") List<String> ids);
 
     @Select("SELECT * FROM subject")
     List<WrapperSubject> getWrapperSubjects();
@@ -38,7 +38,7 @@ public interface AutoConstructorMapper {
     @Select("SELECT * FROM subject")
     List<BadSubject> getBadSubjects();
 
-    void updateSubject(@Param("subject") PrimitiveSubject subject);
+    void updateUser(@Param("subject") PrimitiveUser subject);
 
     default String funA() {
         return "funA";

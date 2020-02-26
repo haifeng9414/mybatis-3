@@ -16,23 +16,18 @@
 package org.apache.ibatis.autoconstructor;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.List;
 
-public class PrimitiveSubject implements Serializable {
+public class PrimitiveUser implements Serializable {
     private Integer id;
     private String name;
     private Integer age;
     private Integer height;
     private Integer weight;
+    private List<String> phones;
 
-    public PrimitiveSubject() {
-    }
-
-    public PrimitiveSubject(Integer id, String name, Integer age, Integer height, Integer weight) {
-        this.id = id;
-        this.name = name;
-        this.age = age;
-        this.height = height;
-        this.weight = weight;
+    public PrimitiveUser() {
     }
 
     public Integer getId() {
@@ -75,14 +70,23 @@ public class PrimitiveSubject implements Serializable {
         this.weight = weight;
     }
 
+    public List<String> getPhones() {
+        return phones;
+    }
+
+    public void setPhones(List<String> phones) {
+        this.phones = phones;
+    }
+
     @Override
     public String toString() {
-        return "PrimitiveSubject{" +
+        return "PrimitiveUser{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", age=" + age +
                 ", height=" + height +
                 ", weight=" + weight +
+                ", phones=" + Arrays.toString(phones == null ? null : phones.toArray()) +
                 '}';
     }
 }
